@@ -17,28 +17,25 @@
             <div>
                 <label class="block mb-2 ml-2 text-sm font-medium text-gray-900" for="file_input">Upload
                     CSV File Here</label>
-                <input
-                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-                    id="csvFileInput" accept=".csv" type="file">
+                <input class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" id="csvFileInput" accept=".csv" type="file">
             </div>
             <div class="flex gap-4 items-center justify-center">
                 <button id="convertBtn" class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700">
                     Convert to JSON
                 </button>
-                    <a id="downloadLink" class="cursor-pointer hidden bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                    download="converted.json">Download JSON</a>
-                </div>
+                <a id="downloadLink" class="cursor-pointer hidden bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700" download="converted.json">Download JSON</a>
+            </div>
         </div>
     </section>
     <script>
-        document.getElementById("convertBtn").addEventListener("click", function () {
+        document.getElementById("convertBtn").addEventListener("click", function() {
             const fileInput = document.getElementById("csvFileInput");
             if (!fileInput.files.length) {
                 alert("Please upload a CSV file.");
                 return;
             }
             const reader = new FileReader();
-            reader.onload = function (event) {
+            reader.onload = function(event) {
                 const csvData = event.target.result;
                 console.log("CSV Raw Data:", csvData);
 
@@ -89,9 +86,8 @@
 
                 //special characters removing
                 function removeSpecialCharacters(str) {
-                    return str.replace(/[^a-zA-Z0-9\s]/g, '');
+                    return str.normalize("NFC").replace(/[^\w\s©–—“”’]/g, ''); // Keeps © and other useful symbols
                 }
-
 
                 const title = removeSpecialCharacters(entry["title"]);
                 const synopsis = removeSpecialCharacters(entry["synopsis"]);
@@ -99,15 +95,26 @@
 
                 // ,, sepration and cleaning function :
                 const splitAndLog = (key) => {
-                    const values = entry[key] ? entry[key].split(/,,/).map(value => value.trim().replace(/^"|"$/g, '').replace(/,$/, '').replace(/\\"/g, '')) : [];
+                    const values = entry[key] ?
+                        entry[key].split(/,,/).map(value =>
+                            value.trim()
+                            .replace(/^"|"$/g, '') // Remove surrounding quotes
+                            .replace(/,$/, '') // Remove trailing commas
+                            .replace(/\\"/g, '') // Remove escaped quotes
+                            .replace(/[^\w\s©]/g, '') // Remove special characters except ©
+                        ) :
+                        [];
+
                     values.forEach((val, index) => {
                         if (val === "" || val.toLowerCase() === "not found") {
                             values[index] = "NOT FOUND";
                         }
                     });
+
                     console.log(`${key}:`, values);
                     return values;
                 };
+
 
                 //Keyword spilt
                 const keywords = splitAndLog("keyword");
@@ -189,9 +196,15 @@
                             familyName: familyNames[i] || "NOT FOUND",
                             fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
                             givenName: givenNames[i] || "NOT FOUND",
-                            identifier: [{ type: "ORCID", value: identifiers[i] || "NOT FOUND" }],
+                            identifier: [{
+                                type: "ORCID",
+                                value: identifiers[i] || "NOT FOUND"
+                            }],
                             initials: initials[i] || "NOT FOUND",
-                            name: [{ language: "en", value: awardeeNames[i] || "NOT FOUND" }],
+                            name: [{
+                                language: "en",
+                                value: awardeeNames[i] || "NOT FOUND"
+                            }],
                             role: roles[i] || "NOT FOUND",
                             sourceRole: "NOT FOUND"
                         }],
@@ -206,7 +219,10 @@
                             }
                         }],
                         fundingBodyOrganizationId: "NOT FOUND",
-                        fundingTotal: [{ amount: fundingTotalAmounts[i] || 0, currency: fundingTotalCurrencies[i] || "NOT FOUND" }],
+                        fundingTotal: [{
+                            amount: fundingTotalAmounts[i] || 0,
+                            currency: fundingTotalCurrencies[i] || "NOT FOUND"
+                        }],
                         hasPostalAddress: {
                             addressCountry: addresses[i] || "NOT FOUND",
                             addressLocality: addressLocalities[i] || "NOT FOUND",
@@ -215,9 +231,15 @@
                             postOfficeBoxNumber: postOfficeBoxNumbers[i] || "NOT FOUND",
                             streetAddress: streetAddresses[i] || "NOT FOUND"
                         },
-                        identifier: [{ type: "ROR", value: universityIdentifiers[i] || "NOT FOUND" }],
+                        identifier: [{
+                            type: "ROR",
+                            value: universityIdentifiers[i] || "NOT FOUND"
+                        }],
                         link: "NOT FOUND",
-                        name: [{ language: "en", value: universityNames[i] || "NOT FOUND" }],
+                        name: [{
+                            language: "en",
+                            value: universityNames[i] || "NOT FOUND"
+                        }],
                         role: universityRoles[i] || "NOT FOUND",
                         sourceRole: "NOT FOUND",
                         vatNumber: universityVatNumbers[i] || "NOT FOUND"
@@ -241,16 +263,27 @@
                             createdWith: "MPS SERVICES"
                         }
                     }],
-                    identifier: [{ type: "DOI", value: entry["DOI"] || "NOT FOUND" }],
-                    ...(formatDate(entry["noticeDate"]) ? { "noticeDate": formatDate(entry["noticeDate"]) } : {}),
+                    identifier: [{
+                        type: "DOI",
+                        value: entry["DOI"] || "NOT FOUND"
+                    }],
+                    ...(formatDate(entry["noticeDate"]) ? {
+                        "noticeDate": formatDate(entry["noticeDate"])
+                    } : {}),
                     startDate: formatDate(entry["startDate"]) || "NOT FOUND",
-                    ...(formatDate(entry["endDate"]) ? { "endDate": formatDate(entry["endDate"]) } : {}),
+                    ...(formatDate(entry["endDate"]) ? {
+                        "endDate": formatDate(entry["endDate"])
+                    } : {}),
                     grantType: entry["grantType"] || "NOT FOUND",
                     funderSchemeType: entry["funderSchemeType"] || "NOT FOUND",
                     homePage: {
                         link: entry["homePage/link"] || "NOT FOUND",
-                        ...(modifiedDate !== "not found" ? { modifiedDate: modifiedDate } : {}),
-                        ...(publishedDate !== "not found" ? { publishedDate: publishedDate } : {})
+                        ...(modifiedDate !== "not found" ? {
+                            modifiedDate: modifiedDate
+                        } : {}),
+                        ...(publishedDate !== "not found" ? {
+                            publishedDate: publishedDate
+                        } : {})
                     },
                     synopsis: [{
                         abstract: {
@@ -275,7 +308,7 @@
                                 createdBy: "MPS",
                                 createdWith: "MPS SERVICES"
                             },
-                            value: entry["licenceInformation/value"] || "NOT FOUND"
+                            value: entry["licenceInformation/value"].normalize("NFC") || "NOT FOUND"
                         },
                         source: entry["licenceInformation/link"] || "NOT FOUND"
                     }],
@@ -384,8 +417,10 @@
                 }
                 console.log("Generated JSON:", jsonData);
                 // Convert JSON to a Blob for downloading
-                const jsonString = JSON.stringify(jsonData, null, 4);
-                const blob = new Blob([jsonString], { type: "application/json" });
+                const jsonString = JSON.stringify(jsonData, null, 0);
+                const blob = new Blob([jsonString], {
+                    type: "application/json"
+                });
                 const link = document.getElementById("downloadLink");
                 link.href = URL.createObjectURL(blob);
                 link.classList.remove("hidden");

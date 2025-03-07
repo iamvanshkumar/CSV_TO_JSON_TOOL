@@ -1,0 +1,71 @@
+JSON Schema 5.0 Data Field,Value from the Source or as determined by Supplier
+fundingBodyAwardId,Not Found
+grantType,COMMUNITY
+title ,High Impact Interventions - Cerebrovascular Accident (CVA)
+startDate,1/1/2024
+endDate,Not Found
+noticeDate,Not Found
+homePage/link,https://www.btfn.org.uk/wp-content/uploads/2024/11/High-Impact-Interventions-%E2%80%93-Cerebrovascular-Accident-CVA-2024.pdf
+homepage/modifiedDate,Not Found
+homepage/publishedDate,Not Found
+synopsis,A community based mixed method study to explore understanding of modifiable stroke risk factors in young people who are of black minority ethnic BME heritage
+keyword,Not Found
+fundingDetail/fundingTotal/amount,64651
+fundingDetail/fundingTotal/currency,GBP
+fundingDetail/installment,Not Found
+funderSchemeType,Grant Programmes
+classification/ ASJC code,"2705,,2713,,2728,,2808"
+classification/ other codes,Not Found
+classification/ Orgspecific,"Cardiology and Cardiovascular Medicine,,Epidemiology,,Clinical Neurology,,Public Health,,Neurology"
+awardeeDetail/name,London South Bank University
+awardeeDetail/fundingBodyOrganizationId,Not Found
+awardeeDetail/role,COORDINATOR
+awardeeDetail/departmentName,Not Found
+awardeeDetail/activityType,Not Found
+awardeeDetail/fundingTotal/amount,Not Found
+awardeeDetail/fundingTotal/currency,Not Found
+awardeeDetail/hasPostalAddress,Not Found
+awardeeDetail/link,Not Found
+awardeeDetail/identifier,Not Found
+awardeeDetail/vatNumber,Not Found
+awardeeDetail/awardeeAffiliationId,Not Found
+awardeeDetail/affiliationOf/initials,Not Found
+awardeeDetail/affiliationOf/name,Not Found
+awardeeDetail/affiliationOf/givenName,Not Found
+awardeeDetail/affiliationOf/familyName,Not Found
+awardeeDetail/affiliationOf/role,Not Found
+awardeeDetail/affiliationOf/emailAddress,Not Found
+awardeeDetail/affiliationOf/identifier/id/orcid,Not Found
+awardeeDetail/affiliationOf/fundingBodyPersonId,Not Found
+awardeeDetail/affiliationOf/awardeePersonId,Not Found
+licenceInformation/link,https://www.btfn.org.uk/privacy-cookie-policy/
+relatedFunder/leadFunder,Not Found
+relatedFunder/hasFunder,Not Found
+relatedOpportunity/grantOpportunityId,Not Found
+relatedOpportunity/title,Not Found
+relatedOpportunity/description,Not Found
+relatedOpportunity/fundingBodyOpportunityId,Not Found
+funds/fundingProjectId,Not Found
+funds/acronym,Not Found
+funds/hasPart/budget,Not Found
+funds/hasPart/fundingBodyProjectId,Not Found
+funds/title,Not Found
+funds/startDate,Not Found
+funds/endDate,Not Found
+funds/link,Not Found
+funds/hasPostalAddress,Not Found
+funds/status,OPEN
+awardee/country,GBR
+awardee/addressLocality,Not Found
+awardee/addressPostalCode,Not Found
+awardee/addressRegion,Not Found
+awardee/postOfficeBoxNumber,Not Found
+awardee/streetAddress,Not Found
+funding/country,GBR
+funding/addressLocality,Not Found
+funding/addressPostalCode,Not Found
+funding/addressRegion,Not Found
+funding/postOfficeBoxNumber,Not Found
+funding/streetAddress,Not Found
+licenceInformation/value,© 2025 The Burdett Trust for Nursing
+createdON,2/22/2025

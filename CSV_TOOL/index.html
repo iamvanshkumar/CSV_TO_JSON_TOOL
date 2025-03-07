@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funding Data Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const fields = [
+                "fundingBodyAwardId", "grantType", "title", "startDate", "endDate", "noticeDate",
+                "homePage/link", "homepage/modifiedDate", "homepage/publishedDate", "synopsis",
+                "keyword", "fundingDetail/fundingTotal/amount", "fundingDetail/fundingTotal/currency",
+                "fundingDetail/installment", "funderSchemeType", "classification/ASJC code",
+                "classification/other codes", "classification/Orgspecific", "awardeeDetail/name",
+                "awardeeDetail/fundingBodyOrganizationId", "awardeeDetail/role", "awardeeDetail/departmentName",
+                "awardeeDetail/activityType", "awardeeDetail/fundingTotal/amount", "awardeeDetail/fundingTotal/currency",
+                "awardeeDetail/hasPostalAddress", "awardeeDetail/link", "awardeeDetail/identifier",
+                "awardeeDetail/vatNumber", "awardeeDetail/awardeeAffiliationId", "awardeeDetail/affiliationOf/initials",
+                "awardeeDetail/affiliationOf/name", "awardeeDetail/affiliationOf/givenName",
+                "awardeeDetail/affiliationOf/familyName", "awardeeDetail/affiliationOf/role",
+                "awardeeDetail/affiliationOf/emailAddress", "awardeeDetail/affiliationOf/identifier/id/orcid",
+                "awardeeDetail/affiliationOf/fundingBodyPersonId", "awardeeDetail/affiliationOf/awardeePersonId",
+                "licenceInformation/link", "relatedFunder/leadFunder", "relatedFunder/hasFunder",
+                "relatedOpportunity/grantOpportunityId", "relatedOpportunity/title", "relatedOpportunity/description",
+                "relatedOpportunity/fundingBodyOpportunityId", "funds/fundingProjectId", "funds/acronym",
+                "funds/hasPart/budget", "funds/hasPart/fundingBodyProjectId", "funds/title", "funds/startDate",
+                "funds/endDate", "funds/link", "funds/hasPostalAddress", "funds/status", "awardee country",
+                "awardee addressLocality", "awardee addressPostalCode", "awardee addressRegion",
+                "awardee postOfficeBoxNumber", "awardee streetAddress", "funding country",
+                "funding addressLocality", "funding addressPostalCode", "funding addressRegion",
+                "funding postOfficeBoxNumber", "funding streetAddress", "licenceInformation value",
+                "createdON", "awardeeDetail/affiliationOf/identifier"
+            ];
+
+            const form = document.getElementById("funding-form");
+            const container = document.getElementById("form-container");
+            const exportRowBtn = document.getElementById("export-row-btn");
+            const fileInput = document.getElementById("upload-excel");
+
+            fields.forEach((field) => {
+                const div = document.createElement("div");
+                div.className = "grid grid-cols-2 gap-4";
+                
+                const label = document.createElement("label");
+                label.textContent = field;
+                label.className = "block font-medium text-gray-700";
+                
+                const input = document.createElement("input");
+                input.type = "text";
+                input.name = field;
+                input.className = "mt-1 p-2 border border-gray-300 rounded-md w-full";
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                container.appendChild(div);
+            });
+
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
+                let formData = {};
+                fields.forEach((field) => {
+                    const value = form.elements[field].value.trim();
+                    formData[field] = value || "null";
+                });
+                let storedData = JSON.parse(localStorage.getItem("fundingData")) || [];
+                formData["rowNumber"] = storedData.length;
+                storedData.push(formData);
+                localStorage.setItem("fundingData", JSON.stringify(storedData));
+                alert("Data Saved!");
+                form.reset();
+            });
+
+            exportRowBtn.addEventListener("click", function () {
+                const storedData = JSON.parse(localStorage.getItem("fundingData")) || [];
+                if (storedData.length === 0) {
+                    alert("No data to export.");
+                    return;
+                }
+                storedData.forEach((row, index) => {
+                    let csvContent = "data:text/csv;charset=utf-8," +
+                        "JSON Schema 5.0 Data Field,Value from the Source or as determined by Supplier\n" +
+                        fields.map(field => `${field},${row[field]}`).join("\n") + `,${row["rowNumber"]}`;
+                    
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `funding_data_row_${index + 1}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            });
+
+            fileInput.addEventListener("change", function (event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: "array" });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                        
+                        const headers = json[0];
+                        const valueIndex = headers.indexOf("Value from the Source or as determined by Supplier");
+                        if (valueIndex !== -1) {
+                            json.slice(1).forEach(row => {
+                                const field = row[0];
+                                if (fields.includes(field)) {
+                                    form.elements[field].value = row[valueIndex] || "";
+                                }
+                            });
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+        });
+    </script>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-center text-2xl font-bold mb-6">Funding Data Form</h1>
+    <input type="file" id="upload-excel" class="mb-4 p-2 border rounded-md block mx-auto">
+    <form id="funding-form" class="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
+        <div id="form-container" class="grid grid-cols-2 gap-4"></div>
+        <div class="text-center mt-6">
+            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Save Data</button>
+            <button type="button" id="export-row-btn" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-700 ml-2">Export Each Row to CSV</button>
+        </div>
+    </form>
+</body>
+</html>

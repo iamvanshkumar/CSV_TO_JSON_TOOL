@@ -21,10 +21,16 @@
                 </div>
                 <div>
                     <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or more
-                        CSV Files Here</label>
+                        CSV Files Here :</label>
                     <input
                         class="block w-full cursor-pointer text-sm text-green-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
                         id="csvFileInput" accept=".csv" type="file" multiple>
+                </div>
+                <div>
+                    <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="fundingBodyId_input">Enter <span class="text-green-500">fundingBodyId</span> Here :</label>
+                    <input
+                        class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+                        id="fundingBodyId_input" type="number">
                 </div>
                 <div class="flex gap-4 items-center justify-center">
                     <button id="convertBtn"
@@ -47,6 +53,8 @@
                 alert("Please upload CSV files.");
                 return;
             }
+
+            let fb_Id = parseInt(document.getElementById("fundingBodyId_input").value) || 0;
 
             const files = Array.from(fileInput.files);
             const zip = new JSZip();
@@ -385,12 +393,12 @@
                         }],
                         relatedFunder: {
                             leadFunder: {
-                                fundingBodyId: 0,
+                                fundingBodyId: fb_Id,
                                 sourceId: "NOT FOUND",
                                 sourceText: "NOT FOUND"
                             },
                             hasFunder: [{
-                                fundingBodyId: 0,
+                                fundingBodyId: fb_Id,
                                 sourceId: "NOT FOUND",
                                 sourceText: "NOT FOUND"
                             }]

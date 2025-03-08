@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSV to JSON Converter</title>
-    <link rel="icon" href="./favicon.png" type="image/x-icon">
+    <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
 </head>
@@ -13,9 +13,12 @@
 <body class="h-screen overflow-hidden">
     <section class="flex items-center justify-center bg-gradient-to-r from-gray-100 to-gray-300 h-full">
         <div class="flex-col shadow-md rounded-sm bg-white">
-            <img src="./banner.png" class="rounded-t-sm" draggable="false" alt="banner">
+            <img src="./assets/banner.png" class="rounded-t-sm" draggable="false" alt="banner">
             <div class="p-4 flex  flex-col gap-6">
-                <h1 class="text-center text-xl font-bold text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
+                <div class="flex flex-col items-center"> 
+                    <h1 class="text-xl font-bold text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
+                    <a class="text-blue-400 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv" download="csv_template.csv">Click here to download csv template</a>
+                </div>
                 <div>
                     <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or more
                         CSV Files Here</label>

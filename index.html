@@ -14,17 +14,23 @@
     <section class="flex items-center justify-center bg-gradient-to-r from-gray-100 to-gray-300 h-full">
         <div class="flex-col shadow-md rounded-sm bg-white">
             <img src="./assets/banner.png" class="rounded-t-sm" draggable="false" alt="banner">
-            <div class="p-4 flex  flex-col gap-6">
+            <div class="p-4 flex  flex-col gap-8">
                 <div class="flex flex-col items-center"> 
                     <h1 class="text-xl font-bold text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
-                    <a class="text-blue-400 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv" download="csv_template.csv">Click here to download csv template</a>
+                    <a class="text-blue-400 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv" download="csv_template.csv">Click here to download CSV template</a>
                 </div>
                 <div>
                     <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or more
-                        CSV Files Here</label>
+                        CSV Files Here :</label>
                     <input
-                        class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+                        class="block w-full cursor-pointer text-sm text-green-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
                         id="csvFileInput" accept=".csv" type="file" multiple>
+                </div>
+                <div>
+                    <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="fundingBodyId_input">Enter <span class="text-green-500">fundingBodyId</span> Here :</label>
+                    <input
+                        class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+                        id="fundingBodyId_input" type="number">
                 </div>
                 <div class="flex gap-4 items-center justify-center">
                     <button id="convertBtn"
@@ -36,6 +42,7 @@
                         Download JSON
                     </a>
                 </div>
+                <p class="text-center text-gray-300 text-xs">© 2025 MPS LIMITED</p>
             </div>
         </div>
     </section>
@@ -46,6 +53,8 @@
                 alert("Please upload CSV files.");
                 return;
             }
+
+            let fb_Id = parseInt(document.getElementById("fundingBodyId_input").value) || 0;
 
             const files = Array.from(fileInput.files);
             const zip = new JSZip();
@@ -104,7 +113,7 @@
                                     .replace(/^"|"$/g, '') // Remove surrounding quotes
                                     .replace(/,$/, '') // Remove trailing commas
                                     .replace(/\\"/g, '') // Remove escaped quotes
-                                    .replace(/[^\w\s©]/g, '') // Remove special characters except ©
+                                    .replace(/[^\w\s©.]/g, '') // Remove special characters except © and .
                             ) :
                             [];
                         values.forEach((val, index) => {
@@ -384,12 +393,12 @@
                         }],
                         relatedFunder: {
                             leadFunder: {
-                                fundingBodyId: 0,
+                                fundingBodyId: fb_Id,
                                 sourceId: "NOT FOUND",
                                 sourceText: "NOT FOUND"
                             },
                             hasFunder: [{
-                                fundingBodyId: 0,
+                                fundingBodyId: fb_Id,
                                 sourceId: "NOT FOUND",
                                 sourceText: "NOT FOUND"
                             }]

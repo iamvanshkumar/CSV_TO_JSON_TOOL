@@ -85,7 +85,7 @@
                     function formatDate(dateString) {
                         if (!dateString || dateString.toLowerCase() === "not found") return null;
                         // Split date based on expected MM/DD/YYYY format
-                        const parts = dateString.split("/");
+                        const parts = dateString.split(/[-\/]/).map(part => part.trim());
                         if (parts.length !== 3) return null; // Return null if format is incorrect
                         // Ensure correct ordering: MM/DD/YYYY → YYYY-MM-DD
                         const month = parseInt(parts[0], 10);

@@ -7,6 +7,7 @@
     <title>CSV to JSON Converter</title>
     <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
 </head>
 
@@ -100,12 +101,45 @@
                     const modifiedDate = formatDate(entry["homepage/modifiedDate"]);
                     const publishedDate = formatDate(entry["homepage/publishedDate"]);
                     //special characters removing
+                    function containsSpecialCharacters(str) {
+                        return /[^\x00-\x7F]/.test(str); // Non-ASCII detection
+                    }
+
+                    // Decode special characters (HTML entities, incorrect encodings)
+                    function decodeSpecialCharacters(str) {
+                        if (typeof str !== "string") return str;
+                    
+                        try {
+                            // Decode HTML entities (e.g., &amp; → &)
+                            str = he.decode(str);
+                    
+                            // Fix malformed encodings by attempting to interpret them as UTF-8
+                            const decoder = new TextDecoder("utf-8", { fatal: false });
+                            const encoder = new TextEncoder();
+                            str = decoder.decode(encoder.encode(str));
+                    
+                        } catch (e) {
+                            console.error("Error decoding special characters:", e);
+                        }
+                    
+                        return str;
+                    }
+                    
+
+                    // Clean data (Unicode normalization, remove unwanted characters)
                     function removeSpecialCharacters(str) {
-                        return str.normalize("NFC").replace(/[^\p{L}\p{N}\s©–—“”’]/gu, ''); 
-                        // \p{L} → Any letter (Unicode support)
-                        // \p{N} → Any number
-                        // \s → Spaces
-                        // ©–—“”’ → Keep these specific symbols
+                        if (!str || typeof str !== "string") return ""; // Ensure it's a string
+                    
+                        // Normalize Unicode (fix accents and character variations)
+                        str = str.normalize("NFC");
+                    
+                        // Decode special characters safely
+                        str = decodeSpecialCharacters(str);
+                    
+                        // Remove unwanted special characters, keeping letters, numbers, spaces, and select symbols
+                        str = str.replace(/[^\p{L}\p{N}\s©–—“”’]/gu, '');
+                    
+                        return str.replace(/\n/g, " ").replace(/\t/g, " ");
                     }
                     
                     const title = removeSpecialCharacters(entry["title"]);
@@ -335,7 +369,11 @@
                                     createdBy: "MPS",
                                     createdWith: "MPS SERVICES"
                                 },
-                                value: entry["licenceInformation/value"].normalize("NFC") || "NOT FOUND"
+                                value: (entry["licenceInformation/value"] || "NOT FOUND")
+                                .toString()
+                                .replace(/�/g, "©")  // Replace all instances of '�' with '©'
+                                .normalize("NFC")
+                            
                             },
                             source: entry["licenceInformation/link"] || "NOT FOUND"
                         }],

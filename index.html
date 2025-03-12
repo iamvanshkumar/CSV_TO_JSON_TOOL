@@ -32,7 +32,7 @@
             <img src="./assets/banner.png" draggable="false" alt="banner">
             <div class="py-8 px-4 flex flex-col justify-start items-center gap-8 h-full">
                 <div class="flex flex-col text-center gap-2">
-                    <h1 class="text-3xl font-black text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
+                    <h1 class="text-4xl font-black text-gray-800 uppercase">CSV to JSON Converter</h1>
                     <a class="text-blue-500 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv"
                         download="csv_template.csv">Click here to download CSV template</a>
                 </div>
@@ -69,6 +69,16 @@
     </section>
     <script>
         document.getElementById("convertBtn").addEventListener("click", function () {
+            function updateJSONOutput(jsonData) {
+                const outputElement = document.getElementById("output");
+                document.getElementById("no-output").style.display = "none";
+                document.getElementById("output-pre").style.display = "block";
+                outputElement.textContent = JSON.stringify(jsonData, null, 2);
+
+                // Apply Prism.js syntax highlighting
+                Prism.highlightElement(outputElement);
+            }
+
             const fileInput = document.getElementById("csvFileInput");
             if (!fileInput.files.length) {
                 alert("Please upload CSV files.");
@@ -503,10 +513,7 @@
                     const filename = `${csvFilename}.json`;
                     zip.file(filename, jsonString);
 
-                    document.getElementById("no-output").style.display = "none";
-                    document.getElementById("output-pre").style.display = "block";
-                    document.getElementById("output").innerHTML = JSON.stringify(jsonData, null, 2);
-
+                    updateJSONOutput(jsonData);
                     processedFiles++;
                     if (processedFiles === files.length) {
                         zip.generateAsync({ type: "blob" }).then(function (content) {

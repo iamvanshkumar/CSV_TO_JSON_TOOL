@@ -101,8 +101,13 @@
                     const publishedDate = formatDate(entry["homepage/publishedDate"]);
                     //special characters removing
                     function removeSpecialCharacters(str) {
-                        return str.normalize("NFC").replace(/[^\w\s©–—“”’]/g, ''); // Keeps © and other useful symbols
+                        return str.normalize("NFC").replace(/[^\p{L}\p{N}\s©–—“”’]/gu, ''); 
+                        // \p{L} → Any letter (Unicode support)
+                        // \p{N} → Any number
+                        // \s → Spaces
+                        // ©–—“”’ → Keep these specific symbols
                     }
+                    
                     const title = removeSpecialCharacters(entry["title"]);
                     const synopsis = removeSpecialCharacters(entry["synopsis"]);
                     // ,, sepration and cleaning function :
@@ -433,10 +438,15 @@
                     if (startDate) {
                         jsonData["startDate"] = startDate;
                     }
+
+
+                    console.log(jsonData);
                     const jsonString = JSON.stringify(jsonData, null, 2);
                     const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
                     const filename = `${csvFilename}.json`;
                     zip.file(filename, jsonString);
+
+
 
                     processedFiles++;
                     if (processedFiles === files.length) {
@@ -452,8 +462,11 @@
                         });
                     }
                 };
-                reader.readAsText(file, "UTF-8");
+                reader.readAsText(file,"UTF-8");
+                
             });
+
+  
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>

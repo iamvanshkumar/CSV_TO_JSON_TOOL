@@ -152,7 +152,7 @@
                             createdWith: "MPS SERVICES"
                         }
                     }));
-                    //ASJC split
+                    //ASJC splitn
                     const asjcCodes = splitAndLog("classification/ASJCcode");
                     const orgLabels = splitAndLog("classification/Orgspecific");
 
@@ -290,7 +290,9 @@
                         ...(noticeDate ? {
                             "noticeDate": noticeDate
                         } : {}),
-                        startDate: startDate || "NOT FOUND",
+                        ...(startDate ? {
+                            "startDate": startDate
+                        } : {}),
                         ...(endDate ? {
                             "endDate": endDate
                         } : {}),
@@ -428,7 +430,9 @@
                     if (noticeDate) {
                         jsonData["noticeDate"] = noticeDate;
                     }
-
+                    if (startDate) {
+                        jsonData["startDate"] = startDate;
+                    }
                     const jsonString = JSON.stringify(jsonData, null, 2);
                     const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
                     const filename = `${csvFilename}.json`;

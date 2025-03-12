@@ -42,9 +42,11 @@
                         class="cursor-pointer hidden bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700">
                         Download JSON
                     </a>
-                </div>
+                </div>0
                 <p class="text-center text-gray-300 text-xs">© 2025 MPS LIMITED</p>
             </div>
+
+            <div id="output"></div>
         </div>
     </section>
     <script>
@@ -152,7 +154,7 @@
                                     .replace(/^"|"$/g, '') // Remove surrounding quotes
                                     .replace(/,$/, '') // Remove trailing commas
                                     .replace(/\\"/g, '') // Remove escaped quotes
-                                    .replace(/[^\w\s©.]/g, '') // Remove special characters except © and .
+                                    .replace(/[^\w\s©.-]/g, '') // Remove special characters except © and .
                             ) :
                             [];
                         values.forEach((val, index) => {
@@ -478,13 +480,12 @@
                     }
 
 
-                    console.log(jsonData);
                     const jsonString = JSON.stringify(jsonData, null, 2);
                     const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
                     const filename = `${csvFilename}.json`;
                     zip.file(filename, jsonString);
 
-
+                    document.getElementById("output").innerHTML = jsonString;
 
                     processedFiles++;
                     if (processedFiles === files.length) {
@@ -494,9 +495,6 @@
                             downloadLink.href = url;
                             downloadLink.download = "converted_files.zip";
                             downloadLink.classList.remove("hidden");
-                            setTimeout(() => {
-                                location.reload();
-                            }, 3000);
                         });
                     }
                 };

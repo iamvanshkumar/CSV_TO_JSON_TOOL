@@ -275,6 +275,12 @@
                     } else {
                         addressAssignment = Array(awardeeMaxLength).fill("NOT FOUND");
                     }
+
+                    for (let i = 0; i < roles.length; i++) {
+                        if (roles[i] === "NOT FOUND") {
+                            roles[i] = "PI";
+                        }
+                    }
                     let awardeesDetails = [];
                     for (let i = 0; i < awardeeMaxLength; i++) {
                         awardeesDetails.push({

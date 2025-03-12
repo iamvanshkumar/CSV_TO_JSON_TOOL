@@ -6,34 +6,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSV to JSON Converter</title>
     <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="./assets/prism.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js"></script>
+    <script src="./assets/prism.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
 </head>
 
-<body class="h-screen overflow-hidden">
-    <section class="flex items-center justify-center bg-gradient-to-r from-gray-100 to-gray-300 h-full">
-        <div class="flex-col shadow-md rounded-sm bg-white">
-            <img src="./assets/banner.png" class="rounded-t-sm" draggable="false" alt="banner">
-            <div class="p-4 flex  flex-col gap-8">
-                <div class="flex flex-col items-center"> 
-                    <h1 class="text-xl font-bold text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
-                    <a class="text-blue-400 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv" download="csv_template.csv">Click here to download CSV template</a>
+<body class="h-screen overflow-hidden bg-gray-100">
+    <section class="grid grid-cols-4 h-full bg-gray-100">
+        <!-- JSON Output -->
+        <div class="col-span-3 bg-gray-100 h-screen text-xs">
+            <pre id="output-pre" style="display: none;"
+                class="bg-gray-800 text-green-300 text-xs p-4 rounded-lg shadow-md h-full overflow-auto m-0 whitespace-pre-wrap">
+                <code id="output" class="language-json">
+                    
+                </code>
+            </pre>
+            <div style="display: flex;" id="no-output" class="w-full h-full flex-col items-center gap-2 justify-center">
+                <img src="./assets/icon.svg" class="w-36" draggable="false" alt="icon">
+                <h4 class="text-gray-400 text-4xl font-bold">No File Uploaded</h4>
+            </div>
+        </div>
+        <div class="flex-col bg-gray-200 border border-gray-300 shadow-xl">
+            <img src="./assets/banner.png" draggable="false" alt="banner">
+            <div class="py-8 px-4 flex flex-col justify-start items-center gap-8 h-full">
+                <div class="flex flex-col text-center gap-2">
+                    <h1 class="text-3xl font-black text-gray-800 uppercase">BULK CSV to JSON Converter</h1>
+                    <a class="text-blue-500 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv"
+                        download="csv_template.csv">Click here to download CSV template</a>
                 </div>
-                <div>
-                    <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or more
-                        CSV Files Here :</label>
-                    <input
-                        class="block w-full cursor-pointer text-sm text-green-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
-                        id="csvFileInput" accept=".csv" type="file" multiple>
+                <div class="space-y-4 w-full">
+                    <div>
+                        <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or
+                            more
+                            CSV Files Here :</label>
+                        <input
+                            class="block w-full cursor-pointer text-sm text-green-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+                            id="csvFileInput" accept=".csv" type="file" multiple>
+                    </div>
+                    <div>
+                        <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="fundingBodyId_input">Enter
+                            <span class="text-green-500">fundingBodyId</span> Here :</label>
+                        <input
+                            class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+                            id="fundingBodyId_input" type="number">
+                    </div>
                 </div>
-                <div>
-                    <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="fundingBodyId_input">Enter <span class="text-green-500">fundingBodyId</span> Here :</label>
-                    <input
-                        class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
-                        id="fundingBodyId_input" type="number">
-                </div>
-                <div class="flex gap-4 items-center justify-center">
+                <div class="flex gap-4 items-center justify-center text-sm">
                     <button id="convertBtn"
                         class="cursor-pointer bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">
                         Convert to JSON
@@ -42,11 +62,9 @@
                         class="cursor-pointer hidden bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700">
                         Download JSON
                     </a>
-                </div>0
-                <p class="text-center text-gray-300 text-xs">© 2025 MPS LIMITED</p>
+                </div>
+                <p class="text-center text-gray-500 text-xs">© 2025 MPS LIMITED</p>
             </div>
-
-            <div id="output"></div>
         </div>
     </section>
     <script>
@@ -110,40 +128,40 @@
                     // Decode special characters (HTML entities, incorrect encodings)
                     function decodeSpecialCharacters(str) {
                         if (typeof str !== "string") return str;
-                    
+
                         try {
                             // Decode HTML entities (e.g., &amp; → &)
                             str = he.decode(str);
-                    
+
                             // Fix malformed encodings by attempting to interpret them as UTF-8
                             const decoder = new TextDecoder("utf-8", { fatal: false });
                             const encoder = new TextEncoder();
                             str = decoder.decode(encoder.encode(str));
-                    
+
                         } catch (e) {
                             console.error("Error decoding special characters:", e);
                         }
-                    
+
                         return str;
                     }
-                    
+
 
                     // Clean data (Unicode normalization, remove unwanted characters)
                     function removeSpecialCharacters(str) {
                         if (!str || typeof str !== "string") return ""; // Ensure it's a string
-                    
+
                         // Normalize Unicode (fix accents and character variations)
                         str = str.normalize("NFC");
-                    
+
                         // Decode special characters safely
                         str = decodeSpecialCharacters(str);
-                    
+
                         // Remove unwanted special characters, keeping letters, numbers, spaces, and select symbols
                         str = str.replace(/[^\p{L}\p{N}\s©–—“”’]/gu, '');
-                    
+
                         return str.replace(/\n/g, " ").replace(/\t/g, " ");
                     }
-                    
+
                     const title = removeSpecialCharacters(entry["title"]);
                     const synopsis = removeSpecialCharacters(entry["synopsis"]);
                     // ,, sepration and cleaning function :
@@ -372,10 +390,10 @@
                                     createdWith: "MPS SERVICES"
                                 },
                                 value: (entry["licenceInformation/value"] || "NOT FOUND")
-                                .toString()
-                                .replace(/�/g, "©")  // Replace all instances of '�' with '©'
-                                .normalize("NFC")
-                            
+                                    .toString()
+                                    .replace(/�/g, "©")  // Replace all instances of '�' with '©'
+                                    .normalize("NFC")
+
                             },
                             source: entry["licenceInformation/link"] || "NOT FOUND"
                         }],
@@ -480,12 +498,14 @@
                     }
 
 
-                    const jsonString = JSON.stringify(jsonData, null, 2);
+                    const jsonString = JSON.stringify(jsonData, null, 0);
                     const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
                     const filename = `${csvFilename}.json`;
                     zip.file(filename, jsonString);
 
-                    document.getElementById("output").innerHTML = jsonString;
+                    document.getElementById("no-output").style.display = "none";
+                    document.getElementById("output-pre").style.display = "block";
+                    document.getElementById("output").innerHTML = JSON.stringify(jsonData, null, 2);
 
                     processedFiles++;
                     if (processedFiles === files.length) {
@@ -498,11 +518,11 @@
                         });
                     }
                 };
-                reader.readAsText(file,"UTF-8");
-                
+                reader.readAsText(file, "UTF-8");
+
             });
 
-  
+
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>

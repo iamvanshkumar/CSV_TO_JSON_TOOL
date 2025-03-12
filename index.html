@@ -32,13 +32,13 @@
             <img src="./assets/banner.png" draggable="false" alt="banner">
             <div class="py-8 px-4 flex flex-col justify-start items-center gap-8 h-full">
                 <div class="flex flex-col text-center gap-2">
-                    <h1 class="text-4xl font-black text-gray-800 uppercase">CSV to JSON Converter</h1>
+                    <h1 class="text-2xl font-black text-gray-800 uppercase">CSV to JSON Converter</h1>
                     <a class="text-blue-500 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv"
                         download="csv_template.csv">Click here to download CSV template</a>
                 </div>
-                <div class="space-y-4 w-full">
+                <div class="space-y-4 w-full mt-4">
                     <div>
-                        <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="file_input">Upload 1 or
+                        <label class="block mb-2 ml-2 text-xs font-medium text-gray-500" for="file_input">Upload 1 or
                             more
                             CSV Files Here :</label>
                         <input
@@ -46,7 +46,7 @@
                             id="csvFileInput" accept=".csv" type="file" multiple>
                     </div>
                     <div>
-                        <label class="block mb-2 ml-2 text-sm font-medium text-gray-500" for="fundingBodyId_input">Enter
+                        <label class="block mb-2 ml-2 text-xs font-medium text-gray-500" for="fundingBodyId_input">Enter
                             <span class="text-blue-500">fundingBodyId</span> Here :</label>
                         <input
                             class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
@@ -294,7 +294,7 @@
                                     language: "en",
                                     value: awardeeNames[i] || "NOT FOUND"
                                 }],
-                                role: roles[i] || "NOT FOUND",
+                                role: roles[i] || "PI",
                                 sourceRole: "NOT FOUND"
                             }],
                             awardeeAffiliationId: "",

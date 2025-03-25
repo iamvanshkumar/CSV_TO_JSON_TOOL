@@ -166,7 +166,7 @@
                         str = decodeSpecialCharacters(str);
 
                         // Remove unwanted special characters, keeping letters, numbers, spaces, and select symbols
-                        str = str.replace(/[^\p{L}\p{N}\s©–—“”’]/gu, '');
+                        str = str.replace(/[^\p{L}\p{N}\s©–—“”’'.]/gu, '');
 
                         return str.replace(/\n/g, " ").replace(/\t/g, " ");
                     }
@@ -181,7 +181,7 @@
                                     .replace(/^"|"$/g, '') // Remove surrounding quotes
                                     .replace(/,$/, '') // Remove trailing commas
                                     .replace(/\\"/g, '') // Remove escaped quotes
-                                    .replace(/[^\w\s©.-]/g, '') // Remove special characters except © and .
+                                    .replace(/[^\p{L}\p{N}\s©–—“”’'.-]/gu, '') // Remove special characters except ©, ., ', and -
                             ) :
                             [];
                         values.forEach((val, index) => {

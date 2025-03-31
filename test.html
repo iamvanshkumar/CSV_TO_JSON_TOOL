@@ -287,21 +287,43 @@
                     const universityVatNumbers = splitAndLog("awardeeDetail/vatNumber");
                     const awardeeMaxLength = Math.max(awardeeNames.length, universityNames.length);
 
-                    let Aid ; // Initialize Aid variable
-                    // Generate Award ID 
-                    function generateID(title, synopsis, leadfunder, awardee) {
+                    let Aid; // Initialize Aid variable
+
+                    function insertAID(id, title, synopsis) {
+                        $.ajax({
+                            type: "POST",
+                            url: "./script.php",
+                            data: {
+                                'insert-awardID': true,
+                                'Aid': Aid,
+                                'title': title,
+                                'synopsis': synopsis
+                            },
+                            dataType: 'json',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            success: function (response) {
+                                console.log("Response from server:", response);
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("AJAX error:", status, error);
+                            }
+                        });
+                    }
+
+                    // Generate Award ID with callback
+                    function generateID(title, synopsis, leadfunder, awardee, callback) {
                         console.log("Clicked");
-                    
+
                         const maxLength = 7;  // Max length of the final ID
                         const concatenatedValues = title + synopsis + leadfunder + awardee;
-                    
+
                         // Generate a simple hash code
                         let hash = 0;
                         for (let i = 0; i < concatenatedValues.length; i++) {
                             const char = concatenatedValues.charCodeAt(i);
                             hash = (hash * 31 + char) % (10 ** maxLength);
                         }
-                    
+
                         // Make AJAX request
                         $.ajax({
                             type: "POST",
@@ -309,295 +331,297 @@
                             data: { 'fetch-awardID': true },
                             dataType: 'json',
                             headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                            success: function(response) {
+                            success: function (response) {
                                 console.log("Response from server:", response);
-                    
+
                                 if (response && response.awardID) {
-                                    const v1 = parseInt(response.awardID, 10);  
-                                    Aid = v1 + hash;  
-                                    
+                                    const v1 = parseInt(response.awardID, 10);
+                                    Aid = v1 + hash;
                                     console.log("Generated ID:", Aid);
+                                    insertAID(Aid, title, synopsis); // Call the function to insert the ID into the database
+                                    // Call the callback function with the generated ID
+                                    if (callback && typeof callback === "function") {
+                                        callback(Aid);
+                                    }
                                 } else {
                                     console.error("Invalid response:", response);
                                 }
                             },
-                            error: function(xhr, status, error) {
+                            error: function (xhr, status, error) {
                                 console.error("AJAX error:", status, error);
                             }
                         });
                     }
-                    
                     // Example usage
-                    generateID(title, synopsis, universityNames, awardeeNames);
-                    
+                    generateID(title, synopsis, universityNames, awardeeNames, function (generatedID) {
 
-                  
-                    if (universityNames.length === 1 && awardeeNames.length > 1) {
-                        universityNames = Array(awardeeNames.length).fill(universityNames[0]);
-                    }
-                    let addressAssignment = [];
-                    if (addresses.length === awardeeMaxLength) {
-                        addressAssignment = addresses;
-                    } else if (addresses.length === 1) {
-                        addressAssignment = [addresses[0], ...Array(awardeeMaxLength - 1).fill("NOT FOUND")];
-                    } else {
-                        addressAssignment = Array(awardeeMaxLength).fill("NOT FOUND");
-                    }
-
-                    for (let i = 0; i < roles.length; i++) {
-                        if (roles[i] === "NOT FOUND") {
-                            roles[i] = "PI";
+                        if (universityNames.length === 1 && awardeeNames.length > 1) {
+                            universityNames = Array(awardeeNames.length).fill(universityNames[0]);
                         }
-                    }
-                    let awardeesDetails = [];
-                    for (let i = 0; i < awardeeMaxLength; i++) {
-                        awardeesDetails.push({
-                            activityType: activityTypes[i] || "NOT FOUND",
-                            affiliationOf: [{
-                                awardeePersonId: awardeePersonIds[i] || "NOT FOUND",
-                                emailAddress: emailAddresses[i] || "NOT FOUND",
-                                familyName: familyNames[i] || "NOT FOUND",
-                                fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
-                                givenName: givenNames[i] || "NOT FOUND",
-                                identifier: [{
-                                    type: "ORCID",
-                                    value: identifiers[i] || "NOT FOUND"
+                        let addressAssignment = [];
+                        if (addresses.length === awardeeMaxLength) {
+                            addressAssignment = addresses;
+                        } else if (addresses.length === 1) {
+                            addressAssignment = [addresses[0], ...Array(awardeeMaxLength - 1).fill("NOT FOUND")];
+                        } else {
+                            addressAssignment = Array(awardeeMaxLength).fill("NOT FOUND");
+                        }
+
+                        for (let i = 0; i < roles.length; i++) {
+                            if (roles[i] === "NOT FOUND") {
+                                roles[i] = "PI";
+                            }
+                        }
+                        let awardeesDetails = [];
+                        for (let i = 0; i < awardeeMaxLength; i++) {
+                            awardeesDetails.push({
+                                activityType: activityTypes[i] || "NOT FOUND",
+                                affiliationOf: [{
+                                    awardeePersonId: generatedID +'_P_'+i,
+                                    emailAddress: emailAddresses[i] || "NOT FOUND",
+                                    familyName: familyNames[i] || "NOT FOUND",
+                                    fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
+                                    givenName: givenNames[i] || "NOT FOUND",
+                                    identifier: [{
+                                        type: "ORCID",
+                                        value: identifiers[i] || "NOT FOUND"
+                                    }],
+                                    initials: initials[i] || "NOT FOUND",
+                                    name: [{
+                                        language: "en",
+                                        value: awardeeNames[i] || "NOT FOUND"
+                                    }],
+                                    role: roles[i] || "PI",
+                                    sourceRole: "NOT FOUND"
                                 }],
-                                initials: initials[i] || "NOT FOUND",
+                                awardeeAffiliationId: generatedID +'_A_'+i,
+                                departmentName: [{
+                                    language: "en",
+                                    value: departmentNames[i] || "NOT FOUND",
+                                    hasProvenance: {
+                                        createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                        createdBy: "MPS",
+                                        createdWith: "MPS SERVICES"
+                                    }
+                                }],
+                                fundingBodyOrganizationId: "NOT FOUND",
+                                fundingTotal: [{
+                                    amount: fundingTotalAmounts[i] || 0,
+                                    currency: fundingTotalCurrencies[i] || "NOT FOUND"
+                                }],
+                                hasPostalAddress: {
+                                    addressCountry: addresses[i] || "NOT FOUND",
+                                    addressLocality: addressLocalities[i] || "NOT FOUND",
+                                    addressPostalCode: addressPostalCodes[i] || "NOT FOUND",
+                                    addressRegion: addressRegions[i] || "NOT FOUND",
+                                    postOfficeBoxNumber: postOfficeBoxNumbers[i] || "NOT FOUND",
+                                    streetAddress: streetAddresses[i] || "NOT FOUND"
+                                },
+                                identifier: [{
+                                    type: "ROR",
+                                    value: universityIdentifiers[i] || "NOT FOUND"
+                                }],
+                                link: "NOT FOUND",
                                 name: [{
                                     language: "en",
-                                    value: awardeeNames[i] || "NOT FOUND"
+                                    value: universityNames[i] || "NOT FOUND"
                                 }],
-                                role: roles[i] || "PI",
-                                sourceRole: "NOT FOUND"
-                            }],
-                            awardeeAffiliationId: "",
-                            departmentName: [{
+                                role: universityRoles[i] || "NOT FOUND",
+                                sourceRole: "NOT FOUND",
+                                vatNumber: universityVatNumbers[i] || "NOT FOUND"
+                            });
+                        }
+
+                        // JSON structure
+                        const jsonData = {
+                            batchId: "",
+                            ingestionId: "",
+                            grantAwardId: entry["grantAwardId"] || 0,
+                            fundingBodyAwardId: entry["fundingBodyAwardId"] || "NOT FOUND",
+                            hasInstallment: [0],
+                            hasWorkPackage: [0],
+                            title: [{
                                 language: "en",
-                                value: departmentNames[i] || "NOT FOUND",
+                                value: title || "NOT FOUND",
                                 hasProvenance: {
                                     createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
                                     createdBy: "MPS",
                                     createdWith: "MPS SERVICES"
                                 }
                             }],
-                            fundingBodyOrganizationId: "NOT FOUND",
-                            fundingTotal: [{
-                                amount: fundingTotalAmounts[i] || 0,
-                                currency: fundingTotalCurrencies[i] || "NOT FOUND"
-                            }],
-                            hasPostalAddress: {
-                                addressCountry: addresses[i] || "NOT FOUND",
-                                addressLocality: addressLocalities[i] || "NOT FOUND",
-                                addressPostalCode: addressPostalCodes[i] || "NOT FOUND",
-                                addressRegion: addressRegions[i] || "NOT FOUND",
-                                postOfficeBoxNumber: postOfficeBoxNumbers[i] || "NOT FOUND",
-                                streetAddress: streetAddresses[i] || "NOT FOUND"
-                            },
                             identifier: [{
-                                type: "ROR",
-                                value: universityIdentifiers[i] || "NOT FOUND"
+                                type: "DOI",
+                                value: entry["DOI"] || "NOT FOUND"
                             }],
-                            link: "NOT FOUND",
-                            name: [{
-                                language: "en",
-                                value: universityNames[i] || "NOT FOUND"
-                            }],
-                            role: universityRoles[i] || "NOT FOUND",
-                            sourceRole: "NOT FOUND",
-                            vatNumber: universityVatNumbers[i] || "NOT FOUND"
-                        });
-                    }
-
-                    // JSON structure
-                    const jsonData = {
-                        batchId: "",
-                        ingestionId: "",
-                        grantAwardId: entry["grantAwardId"] || 0,
-                        fundingBodyAwardId: entry["fundingBodyAwardId"] || "NOT FOUND",
-                        hasInstallment: [0],
-                        hasWorkPackage: [0],
-                        title: [{
-                            language: "en",
-                            value: title || "NOT FOUND",
-                            hasProvenance: {
-                                createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                                createdBy: "MPS",
-                                createdWith: "MPS SERVICES"
-                            }
-                        }],
-                        identifier: [{
-                            type: "DOI",
-                            value: entry["DOI"] || "NOT FOUND"
-                        }],
-                        ...(noticeDate ? {
-                            "noticeDate": noticeDate
-                        } : {}),
-                        ...(startDate ? {
-                            "startDate": startDate
-                        } : {}),
-                        ...(endDate ? {
-                            "endDate": endDate
-                        } : {}),
-                        grantType: entry["grantType"] || "NOT FOUND",
-                        funderSchemeType: entry["funderSchemeType"] || "NOT FOUND",
-                        homePage: {
-                            link: entry["homePage/link"] || "NOT FOUND",
-                            ...(modifiedDate !== null ? {
-                                modifiedDate: modifiedDate
+                            ...(noticeDate ? {
+                                "noticeDate": noticeDate
                             } : {}),
-                            ...(publishedDate !== null ? {
-                                publishedDate: publishedDate
-                            } : {})
-                        },
-                        synopsis: [{
-                            abstract: {
-                                language: "en",
-                                value: synopsis || "NOT FOUND",
-                                hasProvenance: {
-                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                                    createdBy: "MPS",
-                                    createdWith: "MPS SERVICES"
-                                }
+                            ...(startDate ? {
+                                "startDate": startDate
+                            } : {}),
+                            ...(endDate ? {
+                                "endDate": endDate
+                            } : {}),
+                            grantType: entry["grantType"] || "NOT FOUND",
+                            funderSchemeType: entry["funderSchemeType"] || "NOT FOUND",
+                            homePage: {
+                                link: entry["homePage/link"] || "NOT FOUND",
+                                ...(modifiedDate !== null ? {
+                                    modifiedDate: modifiedDate
+                                } : {}),
+                                ...(publishedDate !== null ? {
+                                    publishedDate: publishedDate
+                                } : {})
                             },
-                            source: entry["homePage/link"] || "NOT FOUND"
-                        }],
-
-                        keyword: keywordArray, // Keywords split
-
-                        licenseInformation: [{
-                            abstract: {
-                                language: "en",
-                                hasProvenance: {
-                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                                    createdBy: "MPS",
-                                    createdWith: "MPS SERVICES"
+                            synopsis: [{
+                                abstract: {
+                                    language: "en",
+                                    value: synopsis || "NOT FOUND",
+                                    hasProvenance: {
+                                        createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                        createdBy: "MPS",
+                                        createdWith: "MPS SERVICES"
+                                    }
                                 },
-                                value: (entry["licenceInformation/value"] || "NOT FOUND")
-                                    .toString()
-                                    .replace(/�/g, " © ")  // Replace all instances of '�' with '©'
-                                    .normalize("NFC")
+                                source: entry["homePage/link"] || "NOT FOUND"
+                            }],
 
-                            },
-                            source: entry["licenceInformation/link"] || "NOT FOUND"
-                        }],
-                        funds: [{
-                            fundingBodyProjectId: "NOT FOUND",
-                            hasPart: [{
-                                fundingBodyProjectId: entry["funds/hasPart/fundingBodyProjectId"],
+                            keyword: keywordArray, // Keywords split
+
+                            licenseInformation: [{
+                                abstract: {
+                                    language: "en",
+                                    hasProvenance: {
+                                        createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                        createdBy: "MPS",
+                                        createdWith: "MPS SERVICES"
+                                    },
+                                    value: (entry["licenceInformation/value"] || "NOT FOUND")
+                                        .toString()
+                                        .replace(/�/g, " © ")  // Replace all instances of '�' with '©'
+                                        .normalize("NFC")
+
+                                },
+                                source: entry["licenceInformation/link"] || "NOT FOUND"
+                            }],
+                            funds: [{
+                                fundingBodyProjectId: "NOT FOUND",
+                                hasPart: [{
+                                    fundingBodyProjectId: entry["funds/hasPart/fundingBodyProjectId"],
+                                    budget: [{
+                                        "amount": 0,
+                                        currency: entry["fundingDetail/fundingTotal/currency"]
+                                    }]
+                                }],
+                                title: [{
+                                    language: "en",
+                                    value: "NOT FOUND",
+                                    hasProvenance: {
+                                        createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                        createdBy: "MPS",
+                                        createdWith: "MPS SERVICES"
+                                    }
+                                }],
+                                acronym: "NOT FOUND",
+                                hasPostalAddress: {
+                                    addressCountry: entry["funding/country"],
+                                    addressLocality: entry["funding/addressLocality"],
+                                    addressPostalCode: entry["funding/addressPostalCode"],
+                                    addressRegion: entry["funding/addressRegion"],
+                                    postOfficeBoxNumber: entry["funding/postOfficeBoxNumber"],
+                                    streetAddress: entry["funding/streetAddress"]
+                                },
+                                link: "NOT FOUND",
                                 budget: [{
-                                    "amount": 0,
+                                    amount: 0,
+                                    currency: entry["fundingDetail/fundingTotal/currency"]
+                                }],
+                                status: entry["funds/status"]
+                            }],
+                            fundingDetail: {
+                                ...(installmentArray && {
+                                    installment: installmentArray
+                                }), // Only add if not null
+                                fundingTotal: [{
+                                    amount: entry["fundingDetail/fundingTotal/amount"] ? parseFloat(entry["fundingDetail/fundingTotal/amount"]) : 0,
                                     currency: entry["fundingDetail/fundingTotal/currency"]
                                 }]
-                            }],
-                            title: [{
-                                language: "en",
-                                value: "NOT FOUND",
-                                hasProvenance: {
-                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                                    createdBy: "MPS",
-                                    createdWith: "MPS SERVICES"
-                                }
-                            }],
-                            acronym: "NOT FOUND",
-                            hasPostalAddress: {
-                                addressCountry: entry["funding/country"],
-                                addressLocality: entry["funding/addressLocality"],
-                                addressPostalCode: entry["funding/addressPostalCode"],
-                                addressRegion: entry["funding/addressRegion"],
-                                postOfficeBoxNumber: entry["funding/postOfficeBoxNumber"],
-                                streetAddress: entry["funding/streetAddress"]
                             },
-                            link: "NOT FOUND",
-                            budget: [{
-                                amount: 0,
-                                currency: entry["fundingDetail/fundingTotal/currency"]
+                            awardeeDetail: awardeesDetails, //Adding classification
+                            classification: classificationArray, // Adding classification 
+                            relatedOpportunity: [{
+                                grantOpportunityId: entry["relatedOpportunity/grantOpportunityId"],
+                                fundingBodyOpportunityId: entry["relatedOpportunity/fundingBodyOpportunityId"],
+                                title: [{
+                                    language: "en",
+                                    value: entry["relatedOpportunity/title"],
+                                    hasProvenance: {
+                                        createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                        createdBy: "MPS",
+                                        createdWith: "MPS SERVICES"
+                                    }
+                                }],
+                                description: entry["relatedOpportunity/description"],
                             }],
-                            status: entry["funds/status"]
-                        }],
-                        fundingDetail: {
-                            ...(installmentArray && {
-                                installment: installmentArray
-                            }), // Only add if not null
-                            fundingTotal: [{
-                                amount: entry["fundingDetail/fundingTotal/amount"] ? parseFloat(entry["fundingDetail/fundingTotal/amount"]) : 0,
-                                currency: entry["fundingDetail/fundingTotal/currency"]
-                            }]
-                        },
-                        awardeeDetail: awardeesDetails, //Adding classification
-                        classification: classificationArray, // Adding classification 
-                        relatedOpportunity: [{
-                            grantOpportunityId: entry["relatedOpportunity/grantOpportunityId"],
-                            fundingBodyOpportunityId: entry["relatedOpportunity/fundingBodyOpportunityId"],
-                            title: [{
-                                language: "en",
-                                value: entry["relatedOpportunity/title"],
-                                hasProvenance: {
-                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                                    createdBy: "MPS",
-                                    createdWith: "MPS SERVICES"
-                                }
-                            }],
-                            description: entry["relatedOpportunity/description"],
-                        }],
-                        relatedFunder: {
-                            leadFunder: {
-                                fundingBodyId: fb_Id,
-                                sourceId: "NOT FOUND",
-                                sourceText: "NOT FOUND"
+                            relatedFunder: {
+                                leadFunder: {
+                                    fundingBodyId: fb_Id,
+                                    sourceId: "NOT FOUND",
+                                    sourceText: "NOT FOUND"
+                                },
+                                hasFunder: [{
+                                    fundingBodyId: fb_Id,
+                                    sourceId: "NOT FOUND",
+                                    sourceText: "NOT FOUND"
+                                }]
                             },
-                            hasFunder: [{
-                                fundingBodyId: fb_Id,
-                                sourceId: "NOT FOUND",
-                                sourceText: "NOT FOUND"
-                            }]
-                        },
-                        hasProvenance: {
-                            wasAttributedTo: "SUP005",
-                            derivedFrom: entry["homePage/link"] || "NOT FOUND",
-                            createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                            lastUpdateOn: new Date().toISOString().split("T")[0] + "T00:00:00",
-                            contactPoint: "Fundingdatateam@mpslimited.com",
-                            version: "0",
-                            hidden: false,
-                            defunct: false,
-                            status: "NEW"
-                        },
+                            hasProvenance: {
+                                wasAttributedTo: "SUP005",
+                                derivedFrom: entry["homePage/link"] || "NOT FOUND",
+                                createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                lastUpdateOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                contactPoint: "Fundingdatateam@mpslimited.com",
+                                version: "0",
+                                hidden: false,
+                                defunct: false,
+                                status: "NEW"
+                            },
 
-                        options: {
-                            additionalProp1: {},
-                            additionalProp2: {},
-                            additionalProp3: {}
+                            options: {
+                                additionalProp1: {},
+                                additionalProp2: {},
+                                additionalProp3: {}
+                            }
+                        };
+                        // Remove date if it is "not found"
+                        if (endDate) {
+                            jsonData["endDate"] = endDate;
                         }
-                    };
-                    // Remove date if it is "not found"
-                    if (endDate) {
-                        jsonData["endDate"] = endDate;
-                    }
-                    if (noticeDate) {
-                        jsonData["noticeDate"] = noticeDate;
-                    }
-                    if (startDate) {
-                        jsonData["startDate"] = startDate;
-                    }
+                        if (noticeDate) {
+                            jsonData["noticeDate"] = noticeDate;
+                        }
+                        if (startDate) {
+                            jsonData["startDate"] = startDate;
+                        }
 
 
-                    const jsonString = JSON.stringify(jsonData, null, 0);
-                    const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
-                    const filename = `${csvFilename}.json`;
-                    zip.file(filename, jsonString);
+                        const jsonString = JSON.stringify(jsonData, null, 0);
+                        const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
+                        const filename = `${csvFilename}.json`;
+                        zip.file(filename, jsonString);
 
-                    updateJSONOutput(jsonData);
-                    processedFiles++;
-                    if (processedFiles === files.length) {
-                        zip.generateAsync({ type: "blob" }).then(function (content) {
-                            const url = URL.createObjectURL(content);
-                            const downloadLink = document.getElementById("downloadLink");
-                            downloadLink.href = url;
-                            downloadLink.download = "converted_files.zip";
-                            downloadLink.classList.remove("hidden");
-                        });
-                    }
+                        updateJSONOutput(jsonData);
+                        processedFiles++;
+                        if (processedFiles === files.length) {
+                            zip.generateAsync({ type: "blob" }).then(function (content) {
+                                const url = URL.createObjectURL(content);
+                                const downloadLink = document.getElementById("downloadLink");
+                                downloadLink.href = url;
+                                downloadLink.download = "converted_files.zip";
+                                downloadLink.classList.remove("hidden");
+                            });
+                        }
+                    });
                 };
                 reader.readAsText(file, "UTF-8");
             });

@@ -1,5 +1,5 @@
 <?php
-include 'conn.php';
+include 'conn.php';  // Database connection
 
 // Set header to return JSON
 header('Content-Type: application/json');
@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Function to respond with JSON and handle errors
+// Function to respond with JSON
 function jsonResponse($data, $status = 200) {
     http_response_code($status);
     echo json_encode($data);
@@ -18,7 +18,7 @@ function jsonResponse($data, $status = 200) {
 }
 
 try {
-    // Check for duplicate title and synopsis
+    // ✅ Step 1: Check for duplicate title + synopsis and return existing Award ID
     if (isset($_POST['check-duplicate'])) {
         $title = $_POST['title'] ?? null;
         $synopsis = $_POST['synopsis'] ?? null;
@@ -32,22 +32,28 @@ try {
         $stmt->execute();
         $result = $stmt->get_result();
 
-        jsonResponse($result->num_rows > 0 ? ['exists' => true, 'awardID' => $result->fetch_assoc()['awardID']] : ['exists' => false]);
-
+        if ($result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            jsonResponse(['exists' => true, 'awardID' => $row['awardID']]);
+        } else {
+            jsonResponse(['exists' => false]);
+        }
     }
 
-    // Fetch the latest baseID
+    // ✅ Step 2: Fetch the latest baseID
     elseif (isset($_POST['fetch-baseID'])) {
         $sql = "SELECT baseID FROM award_id ORDER BY id DESC LIMIT 1";
         $result = $db->query($sql);
 
-        jsonResponse($result && $result->num_rows > 0
-            ? ['baseID' => $result->fetch_assoc()['baseID']]
-            : ['baseID' => 1]);
-
+        if ($result && $result->num_rows > 0) {
+            $row = $result->fetch_assoc();
+            jsonResponse(['baseID' => $row['baseID']]);
+        } else {
+            jsonResponse(['baseID' => 1]);
+        }
     }
 
-    // Check if AwardID already exists
+    // ✅ Step 3: Check if AwardID already exists
     elseif (isset($_POST['check-awardID'])) {
         $awardID = intval($_POST['awardID']);
 
@@ -57,43 +63,50 @@ try {
         $result = $stmt->get_result()->fetch_assoc();
 
         jsonResponse(['exists' => $result['count'] > 0]);
-
     }
 
-    // Save new BaseID, AwardID, Title, and Synopsis together
+    // ✅ Step 4: Save BaseID, AwardID, Title, and Synopsis (only if unique)
     elseif (isset($_POST['save-baseID'])) {
         $newBaseID = intval($_POST['baseID']);
         $awardID = intval($_POST['awardID']);
         $title = $_POST['title'] ?? null;
         $synopsis = $_POST['synopsis'] ?? null;
-    
+
         if (!$newBaseID || !$awardID || !$title || !$synopsis) {
-            echo json_encode(['error' => 'Missing parameters']);
-            http_response_code(400);
-            exit;
+            jsonResponse(['error' => 'Missing parameters'], 400);
         }
-    
-        // Use INSERT IGNORE to prevent duplicates or update existing row
-        $stmt = $db->prepare("
-            INSERT INTO award_id (baseID, awardID, title, synopsis) 
-            VALUES (?, ?, ?, ?) 
-            ON DUPLICATE KEY UPDATE awardID = VALUES(awardID)
-        ");
-    
-        if (!$stmt) {
-            echo json_encode(['error' => "Prepare failed: " . $db->error]);
-            exit;
-        }
-    
-        $stmt->bind_param("iiss", $newBaseID, $awardID, $title, $synopsis);
-    
-        if ($stmt->execute()) {
-            echo json_encode(['success' => 'BaseID and AwardID inserted/updated successfully']);
+
+        // 🔥 Check for duplicate before inserting
+        $checkStmt = $db->prepare("SELECT awardID FROM award_id WHERE title = ? AND synopsis = ?");
+        $checkStmt->bind_param("ss", $title, $synopsis);
+        $checkStmt->execute();
+        $checkResult = $checkStmt->get_result();
+
+        if ($checkResult->num_rows > 0) {
+            // Existing combination found, return existing ID
+            $row = $checkResult->fetch_assoc();
+            jsonResponse(['exists' => true, 'awardID' => $row['awardID']]);
         } else {
-            echo json_encode(['error' => 'Failed to insert BaseID and AwardID']);
+            // Insert new record if unique
+            $stmt = $db->prepare("
+                INSERT INTO award_id (baseID, awardID, title, synopsis) 
+                VALUES (?, ?, ?, ?)
+            ");
+
+            if (!$stmt) {
+                jsonResponse(['error' => "Prepare failed: " . $db->error], 500);
+            }
+
+            $stmt->bind_param("iiss", $newBaseID, $awardID, $title, $synopsis);
+
+            if ($stmt->execute()) {
+                jsonResponse(['success' => 'BaseID and AwardID inserted successfully', 'awardID' => $awardID]);
+            } else {
+                jsonResponse(['error' => 'Failed to insert BaseID and AwardID'], 500);
+            }
+
+            $stmt->close();
         }
-    
-        $stmt->close();
     } else {
         jsonResponse(['error' => 'Invalid request'], 400);
     }
@@ -101,4 +114,3 @@ try {
 } catch (Exception $e) {
     jsonResponse(['error' => $e->getMessage()], 500);
 }
-?>

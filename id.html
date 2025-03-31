@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+ 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+ 
+<body>
+ 
+    <input type="number" name="baseID" id="id_base">
+    <button class="" id="button_id">Generate</button>
+    <!-- 80000457 -->
+ 
+    <script>
+        document.getElementById("button_id").addEventListener("click", function () {
+            const v1 = parseInt(document.getElementById("id_base").value, 10);
+            generateID(v1);
+        });
+ 
+        function generateID(v1) {
+            const title = "The role of grey matter in repairing myelin in white matter";
+            const synopsis = "Our brains are made up of grey matter and white matter. Our grey matter is responsible for processing and interpreting information. White matter is made up of nerve fibres. They allow different parts of our brain to communicate with each other. Myelin gives white matter its colour.In MS, myelin in the white matter becomes damaged, and messages find it harder to get through – or can’t get through at all. Recently, a small study found myelin damage in the white matter is connected to changes in the grey matter.Surprisingly, the researchers found that these changes might be essential for myelin repair in the white matter. Early data from a small study showed that the myelin repair in the white matter is less efficient when the researchers prevented the changes in the grey matter from happening. So they think these changes are not harmful. Instead, they believe they might be a natural and essential part of myelin repair.";
+            const leadfunder = "Multiple Sclerosis Society";
+            const awardee = "University of Cambridge";
+            const maxLength = 7;
+ 
+            const concatenatedValues = title + synopsis + leadfunder + awardee;
+            
+ 
+            // Generate SHA-256 hash using CryptoJS
+            const hash = CryptoJS.SHA256(concatenatedValues).toString(CryptoJS.enc.Hex);
+            const hashInt = BigInt('0x' + hash);
+            const smallHash = Number(hashInt % BigInt(10 ** maxLength));
+            const Aid = v1 + smallHash;
+ 
+            alert('Generated ID: ' + Aid);
+        }
+    </script>
+ 
+</body>
+ 
+</html>

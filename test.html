@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV to JSON Converter</title>
+    <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
+    <link rel="stylesheet" href="./assets/prism.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/he/1.2.0/he.min.js"></script>
+    <script src="./assets/prism.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+        integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+
+<body class="h-screen overflow-hidden bg-gray-100">
+    <section class="grid grid-cols-4 h-full bg-gray-100">
+        <!-- JSON Output -->
+        <div class="col-span-3 bg-gray-100 h-screen text-xs">
+            <pre id="output-pre" style="display: none;"
+                class="bg-gray-800 text-green-300 text-xs p-4 rounded-lg shadow-md h-full overflow-auto m-0 whitespace-pre-wrap">
+                <code id="output" class="language-json" contenteditable="true">
+                </code>
+            </pre>
+            <div style="display: flex;" id="no-output" class="w-full h-full flex-col items-center gap-2 justify-center">
+                <img src="./assets/icon.svg" class="w-36" draggable="false" alt="icon">
+                <h4 class="text-gray-400 text-4xl font-bold">No File Uploaded</h4>
+            </div>
+        </div>
+        <div class="flex-col bg-gray-200 border border-gray-300 shadow-xl">
+            <img src="./assets/banner.png" draggable="false" alt="banner">
+            <div class="py-8 px-4 flex flex-col justify-start items-center gap-8 h-full">
+                <div class="flex flex-col text-center gap-2">
+                    <h1 class="text-2xl font-black text-gray-800 uppercase">CSV to JSON Converter</h1>
+                    <a class="text-blue-500 text-xs cursor-pointer hover:underline" href="./assets/csv_template.csv"
+                        download="csv_template.csv">Click here to download CSV template</a>
+                </div>
+                <div class="space-y-4 w-full mt-4">
+                    <div>
+                        <label class="block mb-2 ml-2 text-xs font-medium text-gray-500" for="file_input">Upload 1 or
+                            more
+                            CSV Files Here :</label>
+                        <input
+                            class="block w-full cursor-pointer text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none"
+                            id="csvFileInput" accept=".csv" type="file" multiple>
+                    </div>
+                    <div>
+                        <label class="block mb-2 ml-2 text-xs font-medium text-gray-500" for="fundingBodyId_input">Enter
+                            <span class="text-blue-500">fundingBodyId</span> Here :</label>
+                        <input
+                            class="block w-full text-sm text-green-900 border border-gray-300 rounded-lg bg-gray-50 focus:outline-none"
+                            id="fundingBodyId_input" type="number">
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center justify-center text-sm">
+                    <button id="convertBtn"
+                        class="cursor-pointer bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                        Convert to JSON
+                    </button>
+                    <a id="downloadLink"
+                        class="cursor-pointer hidden bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                        Download JSON
+                    </a>
+                </div>
+                <p class="text-center text-gray-500 text-xs">© 2025 MPS LIMITED</p>
+            </div>
+        </div>
+    </section>
+    <script>
+        document.getElementById("convertBtn").addEventListener("click", function () {
+            function updateJSONOutput(jsonData) {
+                const outputElement = document.getElementById("output");
+                document.getElementById("no-output").style.display = "none";
+                document.getElementById("output-pre").style.display = "block";
+                outputElement.textContent = JSON.stringify(jsonData, null, 2);
+
+                // Apply Prism.js syntax highlighting
+                Prism.highlightElement(outputElement);
+            }
+
+            const fileInput = document.getElementById("csvFileInput");
+            if (!fileInput.files.length) {
+                alert("Please upload CSV files.");
+                return;
+            }
+
+            let fb_Id = parseInt(document.getElementById("fundingBodyId_input").value) || 0;
+
+            const files = Array.from(fileInput.files);
+            const zip = new JSZip();
+            let processedFiles = 0;
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const csvData = event.target.result;
+                    const rows = csvData.split(/\r?\n/).map(row => row.trim()).filter(row => row);
+                    if (rows.length < 2) {
+                        alert("CSV file is empty or missing data.");
+                        return;
+                    }
+                    const delimiters = [",", ";", "\t"];
+                    let detectedDelimiter = delimiters.find(delim => rows[0].includes(delim)) || ",";
+                    let entry = {};
+                    rows.forEach(row => {
+                        const parts = row.split(detectedDelimiter).map(value => {
+                            return value.trim().replace(/^"|"$/g, '').replace(/,$/, '').replace(/\\"/g, '').normalize("NFC");
+                        });
+                        if (parts.length >= 2) {
+                            entry[parts[0]] = parts.slice(1).join(detectedDelimiter);
+                        }
+                    });
+
+                    // Format date
+                    function formatDate(dateString) {
+                        if (!dateString || dateString.toLowerCase() === "not found") return null;
+
+                        // Check if the format is already YYYY-MM-DD or YYYY/MM/DD
+                        const isoFormatMatch = /^\d{4}[-/]\d{2}[-/]\d{2}$/.test(dateString);
+                        if (isoFormatMatch) {
+                            return dateString.replace(/\//g, "-") + "T00:00:00";
+                        }
+
+                        // Split date based on expected formats MM/DD/YYYY, DD/MM/YYYY, MM-DD-YYYY, or DD-MM-YYYY
+                        const parts = dateString.split(/[-\/]/).map(part => part.trim());
+                        if (parts.length !== 3) return null; // Return null if format is incorrect
+
+                        let day, month, year;
+
+                        // Determine format based on the first part (day or month)
+                        if (parseInt(parts[0], 10) > 12) {
+                            // Assume DD/MM/YYYY or DD-MM-YYYY
+                            day = parseInt(parts[0], 10);
+                            month = parseInt(parts[1], 10);
+                        } else {
+                            // Assume MM/DD/YYYY or MM-DD-YYYY
+                            month = parseInt(parts[0], 10);
+                            day = parseInt(parts[1], 10);
+                        }
+
+                        year = parseInt(parts[2], 10);
+
+                        // Construct ISO-compliant date string
+                        return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}T00:00:00`;
+                    }
+                    const startDate = formatDate(entry["startDate"]);
+                    const endDate = formatDate(entry["endDate"]);
+                    const noticeDate = formatDate(entry["noticeDate"]);
+                    const modifiedDate = formatDate(entry["homepage/modifiedDate"]);
+                    const publishedDate = formatDate(entry["homepage/publishedDate"]);
+                    //special characters removing
+                    function containsSpecialCharacters(str) {
+                        return /[^\x00-\x7F]/.test(str); // Non-ASCII detection
+                    }
+
+                    // Decode special characters (HTML entities, incorrect encodings)
+                    function decodeSpecialCharacters(str) {
+                        if (typeof str !== "string") return str;
+
+                        try {
+                            // Decode HTML entities (e.g., &amp; → &)
+                            str = he.decode(str);
+
+                            // Fix malformed encodings by attempting to interpret them as UTF-8
+                            const decoder = new TextDecoder("utf-8", { fatal: false });
+                            const encoder = new TextEncoder();
+                            str = decoder.decode(encoder.encode(str));
+
+                        } catch (e) {
+                            console.error("Error decoding special characters:", e);
+                        }
+
+                        return str;
+                    }
+
+
+                    // Clean data (Unicode normalization, remove unwanted characters)
+                    function removeSpecialCharacters(str) {
+                        if (!str || typeof str !== "string") return ""; // Ensure it's a string
+
+                        // Normalize Unicode (fix accents and character variations)
+                        str = str.normalize("NFC");
+
+                        // Decode special characters safely
+                        str = decodeSpecialCharacters(str);
+
+                        // Remove unwanted special characters, keeping letters, numbers, spaces, brackets, and select symbols
+                        str = str.replace(/[^\p{L}\p{N}\s©–—“”’'.\[\]\(\)]/gu, '');
+
+                        return str.replace(/\n/g, " ").replace(/\t/g, " ");
+                    }
+
+                    const title = removeSpecialCharacters(entry["title"]);
+                    const synopsis = removeSpecialCharacters(entry["synopsis"]);
+                    // ,, sepration and cleaning function :
+                    const splitAndLog = (key) => {
+                        const values = entry[key] ?
+                            entry[key].split(/,,/).map(value =>
+                                value.trim()
+                                    .replace(/^"|"$/g, '') // Remove surrounding quotes
+                                    .replace(/,$/, '') // Remove trailing commas
+                                    .replace(/\\"/g, '') // Remove escaped quotes
+                                    .replace(/[^\p{L}\p{N}\s©–—“”’'.-]/gu, '') // Remove special characters except ©, ., ', and -
+                            ) :
+                            [];
+                        values.forEach((val, index) => {
+                            if (val === "" || val.toLowerCase() === "not found") {
+                                values[index] = "NOT FOUND";
+                            }
+                        });
+                        return values;
+                    };
+                    // Installment Array
+                    const installment = splitAndLog("fundingDetail/installment");
+                    let installmentArray = null; // Default to null
+                    if (installment > 0) {
+                        installmentArray = Array.from({
+                            length: installment
+                        }, (_, index) => ({
+                            index: 0,
+                            grantAwardInstallmentId: parseInt(installment, 10),
+                            financialYearStart: 0,
+                            financialYearEnd: 0,
+                            fundedAmount: [{
+                                amount: 0,
+                                currency: entry["fundingDetail/fundingTotal/currency"]
+                            }]
+                        }));
+                    }
+                    //Keyword spilt
+                    const keywords = splitAndLog("keyword");
+                    const keywordArray = keywords.map(keyword => ({
+                        language: "en",
+                        value: keyword,
+                        hasProvenance: {
+                            createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                            createdBy: "MPS",
+                            createdWith: "MPS SERVICES"
+                        }
+                    }));
+                    //ASJC splitn
+                    const asjcCodes = splitAndLog("classification/ASJCcode");
+                    const orgLabels = splitAndLog("classification/Orgspecific");
+
+                    const maxLength = Math.max(asjcCodes.length, orgLabels.length);
+                    while (asjcCodes.length < maxLength) asjcCodes.push("NOT FOUND");
+                    while (orgLabels.length < maxLength) orgLabels.push("NOT FOUND");
+
+                    const classificationArray = asjcCodes.map((code, index) => ({
+                        "type": "Annotation",
+                        "hasSubject": {
+                            "preferredLabel": orgLabels[index],
+                            "identifier": {
+                                "value": code,
+                                "type": "ASJC"
+                            }
+                        }
+                    }));
+                    //awardee split
+                    const awardeeNames = splitAndLog("awardeeDetail/affiliationOf/name");
+                    let universityNames = splitAndLog("awardeeDetail/name");
+                    const addresses = splitAndLog("awardee/country");
+                    const activityTypes = splitAndLog("awardeeDetail/activityType");
+                    let awardeePersonIds = splitAndLog("awardeeDetail/affiliationOf/awardeePersonId");
+                    const emailAddresses = splitAndLog("awardeeDetail/affiliationOf/emailAddress");
+                    const familyNames = splitAndLog("awardeeDetail/affiliationOf/familyName");
+                    const fundingBodyPersonIds = splitAndLog("awardeeDetail/affiliationOf/fundingBodyPersonId");
+                    const givenNames = splitAndLog("awardeeDetail/affiliationOf/givenName");
+                    const identifiers = splitAndLog("awardeeDetail/affiliationOf/identifier/id/orcid");
+                    const initials = splitAndLog("awardeeDetail/affiliationOf/initials");
+                    const roles = splitAndLog("awardeeDetail/affiliationOf/role");
+                    const departmentNames = splitAndLog("awardeeDetail/departmentName");
+                    const fundingTotalAmounts = splitAndLog("awardeeDetail/fundingTotal/amount");
+                    const fundingTotalCurrencies = splitAndLog("fundingDetail/fundingTotal/currency");
+                    const addressLocalities = splitAndLog("awardee/addressLocality");
+                    const addressPostalCodes = splitAndLog("awardee/addressPostalCode");
+                    const addressRegions = splitAndLog("awardee/addressRegion");
+                    const postOfficeBoxNumbers = splitAndLog("awardee/postOfficeBoxNumber");
+                    const streetAddresses = splitAndLog("awardee/streetAddress");
+                    const universityIdentifiers = splitAndLog("awardeeDetail/identifier");
+                    const universityRoles = splitAndLog("awardeeDetail/role");
+                    const universityVatNumbers = splitAndLog("awardeeDetail/vatNumber");
+                    const awardeeMaxLength = Math.max(awardeeNames.length, universityNames.length);
+
+                    // Generate Award ID 
+                    function generateID(title, synopsis, leadfunder, awardee) {
+                        console.log("Clicked");
+
+                        const maxLength = 7;  // Max length of the final ID
+                        const concatenatedValues = title + synopsis + leadfunder + awardee;
+
+                        // Generate SHA-256 hash using CryptoJS
+                        const hash = CryptoJS.SHA256(concatenatedValues).toString(CryptoJS.enc.Hex);
+                        const hashInt = BigInt('0x' + hash);
+                        const smallHash = Number(hashInt % BigInt(10 ** maxLength));
+
+                        return new Promise((resolve, reject) => {
+                            $.ajax({
+                                type: "POST",
+                                url: "./script.php",
+                                data: { 'fetch-awardID': true },
+                                dataType: 'json',
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                                success: function (response) {
+                                    console.log("Response from server:", response);
+
+                                    if (response && response.awardID) {
+                                        console.log("Award ID fetched:", response.awardID);
+
+                                        const v1 = parseInt(response.awardID, 10);  // Convert to integer
+                                        const Aid = v1 + smallHash;  // Combine award ID with hash
+                                        console.log("Generated ID:", Aid);
+
+                                        resolve(Aid);  // Return the generated ID
+                                    } else {
+                                        console.error("Invalid response:", response);
+                                        reject("Invalid response from server.");
+                                    }
+                                },
+                                error: function (xhr, status, error) {
+                                    console.error("AJAX error:", status, error);
+                                    reject(`AJAX error: ${status} - ${error}`);
+                                }
+                            });
+                        });
+                    }
+
+                    // Example usage with async/await
+                    async function generateAndLogID() {
+                        try {
+                            const Aid = await generateID('title', 'synopsis', 'universityNames', 'awardeeNames');
+                            console.log("Final ID:", Aid);
+                        } catch (error) {
+                            console.error(error);
+                        }
+                    }
+
+                    generateAndLogID();
+
+
+                  
+                    if (universityNames.length === 1 && awardeeNames.length > 1) {
+                        universityNames = Array(awardeeNames.length).fill(universityNames[0]);
+                    }
+                    let addressAssignment = [];
+                    if (addresses.length === awardeeMaxLength) {
+                        addressAssignment = addresses;
+                    } else if (addresses.length === 1) {
+                        addressAssignment = [addresses[0], ...Array(awardeeMaxLength - 1).fill("NOT FOUND")];
+                    } else {
+                        addressAssignment = Array(awardeeMaxLength).fill("NOT FOUND");
+                    }
+
+                    for (let i = 0; i < roles.length; i++) {
+                        if (roles[i] === "NOT FOUND") {
+                            roles[i] = "PI";
+                        }
+                    }
+                    let awardeesDetails = [];
+                    for (let i = 0; i < awardeeMaxLength; i++) {
+                        awardeesDetails.push({
+                            activityType: activityTypes[i] || "NOT FOUND",
+                            affiliationOf: [{
+                                awardeePersonId: awardeePersonIds[i] || "NOT FOUND",
+                                emailAddress: emailAddresses[i] || "NOT FOUND",
+                                familyName: familyNames[i] || "NOT FOUND",
+                                fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
+                                givenName: givenNames[i] || "NOT FOUND",
+                                identifier: [{
+                                    type: "ORCID",
+                                    value: identifiers[i] || "NOT FOUND"
+                                }],
+                                initials: initials[i] || "NOT FOUND",
+                                name: [{
+                                    language: "en",
+                                    value: awardeeNames[i] || "NOT FOUND"
+                                }],
+                                role: roles[i] || "PI",
+                                sourceRole: "NOT FOUND"
+                            }],
+                            awardeeAffiliationId: "",
+                            departmentName: [{
+                                language: "en",
+                                value: departmentNames[i] || "NOT FOUND",
+                                hasProvenance: {
+                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                    createdBy: "MPS",
+                                    createdWith: "MPS SERVICES"
+                                }
+                            }],
+                            fundingBodyOrganizationId: "NOT FOUND",
+                            fundingTotal: [{
+                                amount: fundingTotalAmounts[i] || 0,
+                                currency: fundingTotalCurrencies[i] || "NOT FOUND"
+                            }],
+                            hasPostalAddress: {
+                                addressCountry: addresses[i] || "NOT FOUND",
+                                addressLocality: addressLocalities[i] || "NOT FOUND",
+                                addressPostalCode: addressPostalCodes[i] || "NOT FOUND",
+                                addressRegion: addressRegions[i] || "NOT FOUND",
+                                postOfficeBoxNumber: postOfficeBoxNumbers[i] || "NOT FOUND",
+                                streetAddress: streetAddresses[i] || "NOT FOUND"
+                            },
+                            identifier: [{
+                                type: "ROR",
+                                value: universityIdentifiers[i] || "NOT FOUND"
+                            }],
+                            link: "NOT FOUND",
+                            name: [{
+                                language: "en",
+                                value: universityNames[i] || "NOT FOUND"
+                            }],
+                            role: universityRoles[i] || "NOT FOUND",
+                            sourceRole: "NOT FOUND",
+                            vatNumber: universityVatNumbers[i] || "NOT FOUND"
+                        });
+                    }
+
+                    // JSON structure
+                    const jsonData = {
+                        batchId: "",
+                        ingestionId: "",
+                        grantAwardId: entry["grantAwardId"] || 0,
+                        fundingBodyAwardId: entry["fundingBodyAwardId"] || "NOT FOUND",
+                        hasInstallment: [0],
+                        hasWorkPackage: [0],
+                        title: [{
+                            language: "en",
+                            value: title || "NOT FOUND",
+                            hasProvenance: {
+                                createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                createdBy: "MPS",
+                                createdWith: "MPS SERVICES"
+                            }
+                        }],
+                        identifier: [{
+                            type: "DOI",
+                            value: entry["DOI"] || "NOT FOUND"
+                        }],
+                        ...(noticeDate ? {
+                            "noticeDate": noticeDate
+                        } : {}),
+                        ...(startDate ? {
+                            "startDate": startDate
+                        } : {}),
+                        ...(endDate ? {
+                            "endDate": endDate
+                        } : {}),
+                        grantType: entry["grantType"] || "NOT FOUND",
+                        funderSchemeType: entry["funderSchemeType"] || "NOT FOUND",
+                        homePage: {
+                            link: entry["homePage/link"] || "NOT FOUND",
+                            ...(modifiedDate !== null ? {
+                                modifiedDate: modifiedDate
+                            } : {}),
+                            ...(publishedDate !== null ? {
+                                publishedDate: publishedDate
+                            } : {})
+                        },
+                        synopsis: [{
+                            abstract: {
+                                language: "en",
+                                value: synopsis || "NOT FOUND",
+                                hasProvenance: {
+                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                    createdBy: "MPS",
+                                    createdWith: "MPS SERVICES"
+                                }
+                            },
+                            source: entry["homePage/link"] || "NOT FOUND"
+                        }],
+
+                        keyword: keywordArray, // Keywords split
+
+                        licenseInformation: [{
+                            abstract: {
+                                language: "en",
+                                hasProvenance: {
+                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                    createdBy: "MPS",
+                                    createdWith: "MPS SERVICES"
+                                },
+                                value: (entry["licenceInformation/value"] || "NOT FOUND")
+                                    .toString()
+                                    .replace(/�/g, " © ")  // Replace all instances of '�' with '©'
+                                    .normalize("NFC")
+
+                            },
+                            source: entry["licenceInformation/link"] || "NOT FOUND"
+                        }],
+                        funds: [{
+                            fundingBodyProjectId: "NOT FOUND",
+                            hasPart: [{
+                                fundingBodyProjectId: entry["funds/hasPart/fundingBodyProjectId"],
+                                budget: [{
+                                    "amount": 0,
+                                    currency: entry["fundingDetail/fundingTotal/currency"]
+                                }]
+                            }],
+                            title: [{
+                                language: "en",
+                                value: "NOT FOUND",
+                                hasProvenance: {
+                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                    createdBy: "MPS",
+                                    createdWith: "MPS SERVICES"
+                                }
+                            }],
+                            acronym: "NOT FOUND",
+                            hasPostalAddress: {
+                                addressCountry: entry["funding/country"],
+                                addressLocality: entry["funding/addressLocality"],
+                                addressPostalCode: entry["funding/addressPostalCode"],
+                                addressRegion: entry["funding/addressRegion"],
+                                postOfficeBoxNumber: entry["funding/postOfficeBoxNumber"],
+                                streetAddress: entry["funding/streetAddress"]
+                            },
+                            link: "NOT FOUND",
+                            budget: [{
+                                amount: 0,
+                                currency: entry["fundingDetail/fundingTotal/currency"]
+                            }],
+                            status: entry["funds/status"]
+                        }],
+                        fundingDetail: {
+                            ...(installmentArray && {
+                                installment: installmentArray
+                            }), // Only add if not null
+                            fundingTotal: [{
+                                amount: entry["fundingDetail/fundingTotal/amount"] ? parseFloat(entry["fundingDetail/fundingTotal/amount"]) : 0,
+                                currency: entry["fundingDetail/fundingTotal/currency"]
+                            }]
+                        },
+                        awardeeDetail: awardeesDetails, //Adding classification
+                        classification: classificationArray, // Adding classification 
+                        relatedOpportunity: [{
+                            grantOpportunityId: entry["relatedOpportunity/grantOpportunityId"],
+                            fundingBodyOpportunityId: entry["relatedOpportunity/fundingBodyOpportunityId"],
+                            title: [{
+                                language: "en",
+                                value: entry["relatedOpportunity/title"],
+                                hasProvenance: {
+                                    createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                                    createdBy: "MPS",
+                                    createdWith: "MPS SERVICES"
+                                }
+                            }],
+                            description: entry["relatedOpportunity/description"],
+                        }],
+                        relatedFunder: {
+                            leadFunder: {
+                                fundingBodyId: fb_Id,
+                                sourceId: "NOT FOUND",
+                                sourceText: "NOT FOUND"
+                            },
+                            hasFunder: [{
+                                fundingBodyId: fb_Id,
+                                sourceId: "NOT FOUND",
+                                sourceText: "NOT FOUND"
+                            }]
+                        },
+                        hasProvenance: {
+                            wasAttributedTo: "SUP005",
+                            derivedFrom: entry["homePage/link"] || "NOT FOUND",
+                            createdOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                            lastUpdateOn: new Date().toISOString().split("T")[0] + "T00:00:00",
+                            contactPoint: "Fundingdatateam@mpslimited.com",
+                            version: "0",
+                            hidden: false,
+                            defunct: false,
+                            status: "NEW"
+                        },
+
+                        options: {
+                            additionalProp1: {},
+                            additionalProp2: {},
+                            additionalProp3: {}
+                        }
+                    };
+                    // Remove date if it is "not found"
+                    if (endDate) {
+                        jsonData["endDate"] = endDate;
+                    }
+                    if (noticeDate) {
+                        jsonData["noticeDate"] = noticeDate;
+                    }
+                    if (startDate) {
+                        jsonData["startDate"] = startDate;
+                    }
+
+
+                    const jsonString = JSON.stringify(jsonData, null, 0);
+                    const csvFilename = file.name.replace(/\.[^/.]+$/, ""); // Remove CSV extension
+                    const filename = `${csvFilename}.json`;
+                    zip.file(filename, jsonString);
+
+                    updateJSONOutput(jsonData);
+                    processedFiles++;
+                    if (processedFiles === files.length) {
+                        zip.generateAsync({ type: "blob" }).then(function (content) {
+                            const url = URL.createObjectURL(content);
+                            const downloadLink = document.getElementById("downloadLink");
+                            downloadLink.href = url;
+                            downloadLink.download = "converted_files.zip";
+                            downloadLink.classList.remove("hidden");
+                        });
+                    }
+                };
+                reader.readAsText(file, "UTF-8");
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+</body>
+
+</html>

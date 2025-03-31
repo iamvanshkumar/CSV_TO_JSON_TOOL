@@ -323,7 +323,7 @@
 
                                 // If duplicate found, use the existing awardID
                                 if (checkResponse && checkResponse.exists && checkResponse.awardID) {
-                                    console.log("Duplicate found. Using existing AwardID:", checkResponse.awardID);
+                                    alert("Duplicate found. Using existing AwardID:", checkResponse.awardID);
 
                                     // Use the existing awardID
                                     if (callback && typeof callback === "function") {
@@ -346,35 +346,62 @@
                                                 // Generate new awardID
                                                 let newAwardID = (baseID + hash) % 90000000;
 
-                                                // Increment baseID
-                                                let newBaseID = baseID + 1;
+                                                // Function to check if the generated ID is unique
+                                                function checkAndSaveAwardID(awardID) {
+                                                    $.ajax({
+                                                        type: "POST",
+                                                        url: "./script.php",
+                                                        data: {
+                                                            'check-awardID': true,
+                                                            'awardID': awardID
+                                                        },
+                                                        dataType: 'json',
+                                                        success: function (checkIDResponse) {
+                                                            if (checkIDResponse && checkIDResponse.exists) {
+                                                                // If ID already exists, generate a new one
+                                                                console.log(`AwardID ${awardID} already exists. Generating a new one.`);
+                                                                newAwardID = (newAwardID + 1) % 90000000; // Increment and wrap around
+                                                                checkAndSaveAwardID(newAwardID);
+                                                            } else {
+                                                                // Save the new unique AwardID
+                                                                let newBaseID = baseID + 1;
 
-                                                console.log(`Generated AwardID: ${newAwardID}, Incremented BaseID: ${newBaseID}`);
+                                                                alert(`Generated AwardID: ${awardID}, Incremented BaseID: ${newBaseID}`);
 
-                                                // Store everything together in DB
-                                                $.ajax({
-                                                    type: "POST",
-                                                    url: "./script.php",
-                                                    data: {
-                                                        'save-baseID': true,
-                                                        'baseID': newBaseID,
-                                                        'awardID': newAwardID,
-                                                        'title': title,
-                                                        'synopsis': synopsis
-                                                    },
-                                                    dataType: 'json',
-                                                    success: function (saveResponse) {
-                                                        console.log("Data saved successfully:", saveResponse);
+                                                                // Store everything together in DB
+                                                                $.ajax({
+                                                                    type: "POST",
+                                                                    url: "./script.php",
+                                                                    data: {
+                                                                        'save-baseID': true,
+                                                                        'baseID': newBaseID,
+                                                                        'awardID': awardID,
+                                                                        'title': title,
+                                                                        'synopsis': synopsis
+                                                                    },
+                                                                    dataType: 'json',
+                                                                    success: function (saveResponse) {
+                                                                        alert("Data saved successfully:", saveResponse);
 
-                                                        // Use the new awardID
-                                                        if (callback && typeof callback === "function") {
-                                                            callback(newAwardID);
+                                                                        // Use the new awardID
+                                                                        if (callback && typeof callback === "function") {
+                                                                            callback(awardID);
+                                                                        }
+                                                                    },
+                                                                    error: function (xhr, status, error) {
+                                                                        alert("Error saving BaseID and AwardID:", status, error);
+                                                                    }
+                                                                });
+                                                            }
+                                                        },
+                                                        error: function (xhr, status, error) {
+                                                            console.error("Error checking AwardID:", status, error);
                                                         }
-                                                    },
-                                                    error: function (xhr, status, error) {
-                                                        console.error("Error saving BaseID and AwardID:", status, error);
-                                                    }
-                                                });
+                                                    });
+                                                }
+
+                                                // Start the check-and-save process
+                                                checkAndSaveAwardID(newAwardID);
 
                                             } else {
                                                 console.error("Invalid response:", response);

@@ -159,8 +159,8 @@
                     function removeSpecificCharacters(str) {
                         if (!str || typeof str !== "string") return ""; // Ensure it's a string
 
-                        // Remove specific unwanted characters, tab spaces, and extra spaces
-                        str = str.replace(/["\\\b\f\n\r\t\/n\/r]/g, "") // Remove unwanted characters
+                        // Remove specific unwanted characters, tab spaces, and extra spaces, but keep '/'
+                        str = str.replace(/["\\\b\f\n\t]/g, "") // Remove unwanted characters except '/'
                                  .replace(/\t/g, "") // Remove tab spaces
                                  .replace(/\s{2,}/g, " "); // Replace multiple spaces with a single space
 
@@ -168,6 +168,7 @@
                     }
 
                     const title = removeSpecificCharacters(entry["title"]);
+                    const synopsis = removeSpecificCharacters(entry["synopsis"]);
                     const splitAndLog = (key) => {
                         const values = entry[key] ?
                             entry[key].split(/,,/).map(value =>

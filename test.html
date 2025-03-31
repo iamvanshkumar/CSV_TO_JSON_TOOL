@@ -314,17 +314,7 @@
                     function generateID(title, synopsis, leadfunder, awardee, callback) {
                         console.log("Clicked");
 
-                        const maxLength = 7;  // Max length of the final ID
-                        const concatenatedValues = title + synopsis + leadfunder + awardee;
-
-                        // Generate a simple hash code
-                        let hash = 0;
-                        for (let i = 0; i < concatenatedValues.length; i++) {
-                            const char = concatenatedValues.charCodeAt(i);
-                            hash = (hash * 31 + char) % (10 ** maxLength);
-                        }
-
-                        // Make AJAX request
+                        // Make AJAX request to fetch the current award ID
                         $.ajax({
                             type: "POST",
                             url: "./script.php",
@@ -335,8 +325,8 @@
                                 console.log("Response from server:", response);
 
                                 if (response && response.awardID) {
-                                    const v1 = parseInt(response.awardID, 10);
-                                    Aid = v1 + hash;
+                                    const currentID = parseInt(response.awardID, 10);
+                                    Aid = currentID + 1; // Increment the fetched ID
                                     console.log("Generated ID:", Aid);
                                     insertAID(Aid, title, synopsis); // Call the function to insert the ID into the database
                                     // Call the callback function with the generated ID

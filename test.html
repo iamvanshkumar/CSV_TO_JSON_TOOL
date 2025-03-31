@@ -293,6 +293,15 @@
                     function generateID(title, synopsis, leadfunder, awardee, callback) {
                         console.log("Clicked");
 
+                        // Check if grantAwardId exists in the CSV
+                        if (entry["grantAwardId"] && entry["grantAwardId"].trim() !== "" && entry["grantAwardId"].trim().toUpperCase() !== "NOT FOUND") {
+                            console.log("grantAwardId exists in the CSV. Skipping ID generation.");
+                            if (callback && typeof callback === "function") {
+                                callback(entry["grantAwardId"]); // Use the existing grantAwardId
+                            }
+                            return;
+                        }
+
                         const concatenatedValues = title + synopsis + leadfunder + awardee;
 
                         // Generate a consistent hash code
@@ -418,8 +427,6 @@
                             }
                         });
                     }
-
-
                     // Example usage
                     generateID(title, synopsis, universityNames, awardeeNames, function (generatedID) {
 

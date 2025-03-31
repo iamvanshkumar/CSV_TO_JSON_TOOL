@@ -289,59 +289,110 @@
 
                     let Aid; // Initialize Aid variable
 
-                    function insertAID(id, title, synopsis) {
+                    // Generate Award ID with BaseID logic and prevent duplicates
+                    function generateID(title, synopsis, leadfunder, awardee, callback) {
+                        console.log("Clicked");
+
+                        const concatenatedValues = title + synopsis + leadfunder + awardee;
+
+                        // Generate a consistent hash code
+                        function generateConsistentHash(input) {
+                            let hash = 0;
+                            for (let i = 0; i < input.length; i++) {
+                                const char = input.charCodeAt(i);
+                                hash = (hash * 31 + char) % 10000000; // Keep hash within 7 digits
+                            }
+                            return hash;
+                        }
+
+                        const hash = generateConsistentHash(concatenatedValues);
+
+                        // Step 1: Check if title and synopsis already exist
                         $.ajax({
                             type: "POST",
                             url: "./script.php",
                             data: {
-                                'insert-awardID': true,
-                                'Aid': Aid,
+                                'check-duplicate': true,
                                 'title': title,
                                 'synopsis': synopsis
                             },
                             dataType: 'json',
                             headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                            success: function (response) {
-                                console.log("Response from server:", response);
-                            },
-                            error: function (xhr, status, error) {
-                                console.error("AJAX error:", status, error);
-                            }
-                        });
-                    }
+                            success: function (checkResponse) {
+                                console.log("Check duplicate response:", checkResponse);
 
-                    // Generate Award ID with callback
-                    function generateID(title, synopsis, leadfunder, awardee, callback) {
-                        console.log("Clicked");
+                                // If duplicate found, use the existing awardID
+                                if (checkResponse && checkResponse.exists && checkResponse.awardID) {
+                                    console.log("Duplicate found. Using existing AwardID:", checkResponse.awardID);
 
-                        // Make AJAX request to fetch the current award ID
-                        $.ajax({
-                            type: "POST",
-                            url: "./script.php",
-                            data: { 'fetch-awardID': true },
-                            dataType: 'json',
-                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                            success: function (response) {
-                                console.log("Response from server:", response);
-
-                                if (response && response.awardID) {
-                                    const currentID = parseInt(response.awardID, 10);
-                                    Aid = currentID + 1; // Increment the fetched ID
-                                    console.log("Generated ID:", Aid);
-                                    insertAID(Aid, title, synopsis); // Call the function to insert the ID into the database
-                                    // Call the callback function with the generated ID
+                                    // Use the existing awardID
                                     if (callback && typeof callback === "function") {
-                                        callback(Aid);
+                                        callback(checkResponse.awardID);
                                     }
+
                                 } else {
-                                    console.error("Invalid response:", response);
+                                    // No duplicate found - proceed with generating a new ID
+                                    $.ajax({
+                                        type: "POST",
+                                        url: "./script.php",
+                                        data: { 'fetch-baseID': true },
+                                        dataType: 'json',
+                                        success: function (response) {
+                                            console.log("Response from server:", response);
+
+                                            if (response && response.baseID) {
+                                                let baseID = parseInt(response.baseID, 10);
+
+                                                // Generate new awardID
+                                                let newAwardID = (baseID + hash) % 90000000;
+
+                                                // Increment baseID
+                                                let newBaseID = baseID + 1;
+
+                                                console.log(`Generated AwardID: ${newAwardID}, Incremented BaseID: ${newBaseID}`);
+
+                                                // Store everything together in DB
+                                                $.ajax({
+                                                    type: "POST",
+                                                    url: "./script.php",
+                                                    data: {
+                                                        'save-baseID': true,
+                                                        'baseID': newBaseID,
+                                                        'awardID': newAwardID,
+                                                        'title': title,
+                                                        'synopsis': synopsis
+                                                    },
+                                                    dataType: 'json',
+                                                    success: function (saveResponse) {
+                                                        console.log("Data saved successfully:", saveResponse);
+
+                                                        // Use the new awardID
+                                                        if (callback && typeof callback === "function") {
+                                                            callback(newAwardID);
+                                                        }
+                                                    },
+                                                    error: function (xhr, status, error) {
+                                                        console.error("Error saving BaseID and AwardID:", status, error);
+                                                    }
+                                                });
+
+                                            } else {
+                                                console.error("Invalid response:", response);
+                                            }
+                                        },
+                                        error: function (xhr, status, error) {
+                                            console.error("AJAX error:", status, error);
+                                        }
+                                    });
                                 }
                             },
                             error: function (xhr, status, error) {
-                                console.error("AJAX error:", status, error);
+                                console.error("Error checking for duplicate:", status, error);
                             }
                         });
                     }
+
+
                     // Example usage
                     generateID(title, synopsis, universityNames, awardeeNames, function (generatedID) {
 
@@ -367,7 +418,7 @@
                             awardeesDetails.push({
                                 activityType: activityTypes[i] || "NOT FOUND",
                                 affiliationOf: [{
-                                    awardeePersonId: generatedID +'_P_'+i,
+                                    awardeePersonId: generatedID + '_P_' + i,
                                     emailAddress: emailAddresses[i] || "NOT FOUND",
                                     familyName: familyNames[i] || "NOT FOUND",
                                     fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
@@ -384,7 +435,7 @@
                                     role: roles[i] || "PI",
                                     sourceRole: "NOT FOUND"
                                 }],
-                                awardeeAffiliationId: generatedID +'_A_'+i,
+                                awardeeAffiliationId: generatedID + '_A_' + i,
                                 departmentName: [{
                                     language: "en",
                                     value: departmentNames[i] || "NOT FOUND",

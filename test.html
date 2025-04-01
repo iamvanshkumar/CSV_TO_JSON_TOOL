@@ -444,7 +444,7 @@
                                 }],
                                 fundingBodyOrganizationId: "NOT FOUND",
                                 fundingTotal: [{
-                                    amount: fundingTotalAmounts[i] || 0,
+                                    amount: (fundingTotalAmounts[i] && fundingTotalAmounts[i] !== "NOT FOUND") ? fundingTotalAmounts[i] : 0,
                                     currency: fundingTotalCurrencies[i] || "NOT FOUND"
                                 }],
                                 hasPostalAddress: {

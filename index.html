@@ -129,51 +129,21 @@
                     const noticeDate = formatDate(entry["noticeDate"]);
                     const modifiedDate = formatDate(entry["homepage/modifiedDate"]);
                     const publishedDate = formatDate(entry["homepage/publishedDate"]);
-                    //special characters removing
-                    function containsSpecialCharacters(str) {
-                        return /[^\x00-\x7F]/.test(str); // Non-ASCII detection
-                    }
 
-                    // Decode special characters (HTML entities, incorrect encodings)
-                    function decodeSpecialCharacters(str) {
-                        if (typeof str !== "string") return str;
-
-                        try {
-                            // Decode HTML entities (e.g., &amp; → &)
-                            str = he.decode(str);
-
-                            // Fix malformed encodings by attempting to interpret them as UTF-8
-                            const decoder = new TextDecoder("utf-8", { fatal: false });
-                            const encoder = new TextEncoder();
-                            str = decoder.decode(encoder.encode(str));
-
-                        } catch (e) {
-                            console.error("Error decoding special characters:", e);
-                        }
-
-                        return str;
-                    }
-
-
-                    // Clean data (Unicode normalization, remove unwanted characters)
-                    function removeSpecialCharacters(str) {
+                    // Clean data by removing specific unwanted characters, tab spaces, and extra spaces
+                    function removeSpecificCharacters(str) {
                         if (!str || typeof str !== "string") return ""; // Ensure it's a string
 
-                        // Normalize Unicode (fix accents and character variations)
-                        str = str.normalize("NFC");
+                        // Remove specific unwanted characters, tab spaces, and extra spaces, but keep '/'
+                        str = str.replace(/["\\\b\f\n\t]/g, "") // Remove unwanted characters except '/'
+                            .replace(/\t/g, "") // Remove tab spaces
+                            .replace(/\s{2,}/g, " "); // Replace multiple spaces with a single space
 
-                        // Decode special characters safely
-                        str = decodeSpecialCharacters(str);
-
-                        // Remove unwanted special characters, keeping letters, numbers, spaces, and select symbols
-                        str = str.replace(/[^\p{L}\p{N}\s©–—“”’'.]/gu, '');
-
-                        return str.replace(/\n/g, " ").replace(/\t/g, " ");
+                        return str.trim(); // Trim leading and trailing spaces
                     }
 
-                    const title = removeSpecialCharacters(entry["title"]);
-                    const synopsis = removeSpecialCharacters(entry["synopsis"]);
-                    // ,, sepration and cleaning function :
+                    const title = removeSpecificCharacters(entry["title"]);
+                    const synopsis = removeSpecificCharacters(entry["synopsis"]);
                     const splitAndLog = (key) => {
                         const values = entry[key] ?
                             entry[key].split(/,,/).map(value =>
@@ -181,7 +151,9 @@
                                     .replace(/^"|"$/g, '') // Remove surrounding quotes
                                     .replace(/,$/, '') // Remove trailing commas
                                     .replace(/\\"/g, '') // Remove escaped quotes
-                                    .replace(/[^\p{L}\p{N}\s©–—“”’'.-]/gu, '') // Remove special characters except ©, ., ', and -
+                                    .replace(/["\\\b\f\n\r\t\/n\/r]/g, "") // Remove specific unwanted characters
+                                    .replace(/\t/g, "") // Remove tab spaces
+                                    .replace(/\s{2,}/g, " ") // Replace multiple spaces with a single space
                             ) :
                             [];
                         values.forEach((val, index) => {
@@ -284,7 +256,7 @@
                         awardeesDetails.push({
                             activityType: activityTypes[i] || "NOT FOUND",
                             affiliationOf: [{
-                                awardeePersonId: awardeePersonIds[i] || "NOT FOUND",
+                                awardeePersonId: entry["grantAwardId"]+"_P_"+i,
                                 emailAddress: emailAddresses[i] || "NOT FOUND",
                                 familyName: familyNames[i] || "NOT FOUND",
                                 fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
@@ -301,7 +273,7 @@
                                 role: roles[i] || "PI",
                                 sourceRole: "NOT FOUND"
                             }],
-                            awardeeAffiliationId: "",
+                            awardeeAffiliationId: entry["grantAwardId"]+"_A_"+i,
                             departmentName: [{
                                 language: "en",
                                 value: departmentNames[i] || "NOT FOUND",

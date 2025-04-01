@@ -112,18 +112,38 @@
                     });
 
                     //formate date
-                    function formatDate(dateString) {
-                        if (!dateString || dateString.toLowerCase() === "not found") return null;
-                        // Split date based on expected MM/DD/YYYY format
-                        const parts = dateString.split(/[-\/]/).map(part => part.trim());
-                        if (parts.length !== 3) return null; // Return null if format is incorrect
-                        // Ensure correct ordering: MM/DD/YYYY → YYYY-MM-DD
-                        const month = parseInt(parts[0], 10);
-                        const day = parseInt(parts[1], 10);
-                        const year = parseInt(parts[2], 10);
-                        // Construct ISO-compliant date string
-                        return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}T00:00:00`;
+                  // Format date
+                  function formatDate(dateString) {
+                    if (!dateString || dateString.toLowerCase() === "not found") return null;
+
+                    // Check if the format is already YYYY-MM-DD or YYYY/MM/DD
+                    const isoFormatMatch = /^\d{4}[-/]\d{2}[-/]\d{2}$/.test(dateString);
+                    if (isoFormatMatch) {
+                        return dateString.replace(/\//g, "-") + "T00:00:00";
                     }
+
+                    // Split date based on expected formats MM/DD/YYYY, DD/MM/YYYY, MM-DD-YYYY, or DD-MM-YYYY
+                    const parts = dateString.split(/[-\/]/).map(part => part.trim());
+                    if (parts.length !== 3) return null; // Return null if format is incorrect
+
+                    let day, month, year;
+
+                    // Determine format based on the first part (day or month)
+                    if (parseInt(parts[0], 10) > 12) {
+                        // Assume DD/MM/YYYY or DD-MM-YYYY
+                        day = parseInt(parts[0], 10);
+                        month = parseInt(parts[1], 10);
+                    } else {
+                        // Assume MM/DD/YYYY or MM-DD-YYYY
+                        month = parseInt(parts[0], 10);
+                        day = parseInt(parts[1], 10);
+                    }
+
+                    year = parseInt(parts[2], 10);
+
+                    // Construct ISO-compliant date string
+                    return `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}T00:00:00`;
+                }
                     const startDate = formatDate(entry["startDate"]);
                     const endDate = formatDate(entry["endDate"]);
                     const noticeDate = formatDate(entry["noticeDate"]);
@@ -315,7 +335,7 @@
                     const jsonData = {
                         batchId: "",
                         ingestionId: "",
-                        grantAwardId: entry["grantAwardId"] || 0,
+                        grantAwardId: (entry["grantAwardId"] && entry["grantAwardId"] !== "NOT FOUND") ? entry["grantAwardId"] : 0,
                         fundingBodyAwardId: entry["fundingBodyAwardId"] || "NOT FOUND",
                         hasInstallment: [0],
                         hasWorkPackage: [0],

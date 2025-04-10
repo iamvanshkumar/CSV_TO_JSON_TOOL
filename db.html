@@ -114,65 +114,38 @@
                     });
 
 
-                    let baseID = 84300001
+                    let baseID = 84300001;
                     function generateConsistentHash(input) {
                         let hash = 0;
                         for (let i = 0; i < input.length; i++) {
                             hash = (hash * 31 + input.charCodeAt(i)) % 10000000;
                         }
-                        return hash;
+                        return 80000000 + (hash % 10000000);
                     }
 
                     function CreateAwardID(baseID, title, synopsis, filename) {
-
                         if (entry["grantAwardId"]?.trim() && entry["grantAwardId"].trim().toUpperCase() !== "NOT FOUND") {
                             console.log("grantAwardId exists in the CSV. Skipping ID generation.");
+                            return parseInt(entry["grantAwardId"], 10);
+                        } else {
                             const concatenatedValues = `${title}${synopsis}`;
-                            const hash = generateConsistentHash(concatenatedValues);
-                            console.log("Hash value:", hash);
-                            console.log(filename);
-
+                            const awardID = generateConsistentHash(concatenatedValues);
+                            return awardID;
                         }
-
-                        console.log(entry["grantAwardId"]);
-
-                        // 
-
-
-
-                        // // Use promises to prevent concurrent execution
-                        // checkDuplicate(title, synopsis)
-                        //     .then((checkResponse) => {
-                        //         if (checkResponse?.exists && checkResponse.awardID) {
-                        //             alert(`Duplicate found. Using existing AwardID: ${checkResponse.awardID}`);
-                        //             if (callback) callback(checkResponse.awardID);
-                        //             return;
-                        //         } else {
-                        //             return fetchBaseID();
-                        //         }
-                        //     })
-                        //     .then((baseID) => {
-                        //         if (baseID) {
-                        //             const newAwardID = (baseID + hash) % 90000000;
-                        //             return checkAndSaveAwardID(newAwardID, baseID);
-                        //         }
-                        //     })
-                        //     .then((awardID) => {
-                        //         if (awardID && callback) {
-                        //             callback(awardID);
-                        //         }
-                        //     })
-                        //     .catch((error) => {
-                        //         console.error("Error:", error);
-                        //     });
-
-
                     }
 
-                    CreateAwardID(baseID, entry["title"], entry["synopsis"], fileInput.files[0].name);
+                    let AwardIdGen = CreateAwardID(baseID, entry["title"], entry["synopsis"], fileInput.files[0].name);
 
-
-
+                    // Store values in local storage
+                    const localStorageKey = `file_${file.name}`;
+                    const fileData = {
+                        baseID: baseID+1,
+                        title: entry["title"] || "NOT FOUND",
+                        synopsis: entry["synopsis"] || "NOT FOUND",
+                        filename: file.name,
+                        awardID: AwardIdGen
+                    };
+                    localStorage.setItem(localStorageKey, JSON.stringify(fileData));
 
                     //formate date
                     // Format date
@@ -339,7 +312,7 @@
                         awardeesDetails.push({
                             activityType: activityTypes[i] || "NOT FOUND",
                             affiliationOf: [{
-                                awardeePersonId: entry["grantAwardId"] + "_P_" + i,
+                                awardeePersonId: AwardIdGen + '_P_' + i,
                                 emailAddress: emailAddresses[i] || "NOT FOUND",
                                 familyName: familyNames[i] || "NOT FOUND",
                                 fundingBodyPersonId: fundingBodyPersonIds[i] || "NOT FOUND",
@@ -356,7 +329,7 @@
                                 role: roles[i] || "PI",
                                 sourceRole: "NOT FOUND"
                             }],
-                            awardeeAffiliationId: entry["grantAwardId"] + "_A_" + i,
+                            awardeeAffiliationId:  AwardIdGen + '_A_' + i,
                             departmentName: [{
                                 language: "en",
                                 value: departmentNames[i] || "NOT FOUND",
@@ -398,7 +371,7 @@
                     const jsonData = {
                         batchId: "",
                         ingestionId: "",
-                        grantAwardId: (entry["grantAwardId"] && entry["grantAwardId"] !== "NOT FOUND") ? entry["grantAwardId"] : 0,
+                        grantAwardId: AwardIdGen,
                         fundingBodyAwardId: entry["fundingBodyAwardId"] || "NOT FOUND",
                         hasInstallment: [0],
                         hasWorkPackage: [0],

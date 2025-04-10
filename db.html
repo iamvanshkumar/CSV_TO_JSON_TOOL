@@ -136,16 +136,35 @@
 
                     let AwardIdGen = CreateAwardID(baseID, entry["title"], entry["synopsis"], fileInput.files[0].name);
 
-                    // Store values in local storage
-                    const localStorageKey = `file_${file.name}`;
-                    const fileData = {
-                        baseID: baseID+1,
+                    // MongoDB integration
+                    const mongoData = {
+                        baseID: baseID + 1,
                         title: entry["title"] || "NOT FOUND",
                         synopsis: entry["synopsis"] || "NOT FOUND",
                         filename: file.name,
                         awardID: AwardIdGen
                     };
-                    localStorage.setItem(localStorageKey, JSON.stringify(fileData));
+
+                    // Assuming you have a function to send data to your MongoDB server
+                    async function saveToMongoDB(data) {
+                        try {
+                            const response = await fetch('http://localhost:5000/save', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(data)
+                            });
+                            if (!response.ok) {
+                                throw new Error('Failed to save data to MongoDB');
+                            }
+                            console.log('Data saved to MongoDB successfully');
+                        } catch (error) {
+                            console.error('Error saving data to MongoDB:', error);
+                        }
+                    }
+
+                    saveToMongoDB(mongoData);
 
                     //formate date
                     // Format date
